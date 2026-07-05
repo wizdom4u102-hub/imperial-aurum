@@ -7,28 +7,13 @@ import PlanComparison from "@/components/plans/PlanComparison";
 import PlanFAQ from "@/components/plans/PlanFAQ";
 import PlansCTA from "@/components/plans/PlansCTA";
 import Footer from "@/components/Footer";
-import Link from "next/link";
+
 
 export default function PlansPage() {
   return (
     <main className="bg-black text-white overflow-x-hidden">
 
-        <Link href="/" className="flex items-center gap-4">
         
-        
-          <div className="leading-none">
-        
-            <h1 className="text-3xl font-bold text-yellow-400 tracking-wide">
-              Imperial Aurum
-            </h1>
-        
-            <p className="text-sm uppercase tracking-[8px] text-yellow-300">
-              Mining
-            </p>
-        
-          </div>
-        
-        </Link>
 
       {/* Hero */}
       <PlansHero />
