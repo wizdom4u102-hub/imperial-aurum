@@ -8,28 +8,26 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Imperial Aurum",
   description: "Premium investment and wealth management platform.",
+  viewport: "width=device-width, initial-scale=1",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html
-      lang="en"
-      className="h-full antialiased"
-    >
-      <body className="min-h-full flex flex-col">
+    <html lang="en" className="h-full antialiased">
+      <body className="min-h-full flex flex-col overflow-x-hidden">
 
-  <AppNavbar />
+        <AppNavbar />
+        <LayoutExtras />
 
- <LayoutExtras />
-
-  <main className="flex-1 pt-20">
-    {children}
-  </main>
-
+        <main className="flex-1 pt-20 w-full">
+          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {children}
+          </div>
+        </main>
 
         {/* Google Analytics */}
         <Script
@@ -37,16 +35,11 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
 
-        <Script
-          id="google-analytics"
-          strategy="afterInteractive"
-        >
+        <Script id="google-analytics" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
-
             gtag('js', new Date());
-
             gtag('config', 'G-XT4YYHBGMG', {
               page_path: window.location.pathname,
             });
@@ -54,23 +47,20 @@ export default function RootLayout({
         </Script>
 
         {/* Microsoft Clarity */}
-<Script
-  id="microsoft-clarity"
-  strategy="afterInteractive"
->
-  {`
-    (function(c,l,a,r,i,t,y){
-      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-      t=l.createElement(r);
-      t.async=1;
-      t.src="https://www.clarity.ms/tag/"+i;
-      y=l.getElementsByTagName(r)[0];
-      y.parentNode.insertBefore(t,y);
-    })(window, document, "clarity", "script", "xdjf6pogkt");
-  `}
-       </Script>
+        <Script id="microsoft-clarity" strategy="afterInteractive">
+          {`
+            (function(c,l,a,r,i,t,y){
+              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+              t=l.createElement(r);
+              t.async=1;
+              t.src="https://www.clarity.ms/tag/"+i;
+              y=l.getElementsByTagName(r)[0];
+              y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "xdjf6pogkt");
+          `}
+        </Script>
 
-       <CookieBanner />
+        <CookieBanner />
 
       </body>
     </html>

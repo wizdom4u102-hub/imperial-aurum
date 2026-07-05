@@ -60,41 +60,36 @@ export async function signupAction(formData: FormData) {
 
   const userId = data.user.id;
 
-  // Upsert profile + give 1000 gold_balance
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .upsert(
-      {
-        id: userId,
-        email: email,
-        referrer_id: referrerId,
-        referred_by: referrerId,
-        gold_balance: 1000,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "id" }
-    );
+  // Upsert profile + give starter gold
+const { error: profileError } = await supabase
+  .from("profiles")
+  .upsert(
+    {
+      id: userId,
+      email,
+      referrer_id: referrerId,
+      referred_by: referrerId,
+      gold_balance: 1000,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "id" }
+  );
 
-  if (profileError) {
-    console.error("Profile / gold_balance error:", profileError);
-  }
+if (profileError) {
+  console.error("Profile insert error:", profileError);
+}
 
   // Credit referrer
-  if (referrerId) {
-    const { error: referrerError } = await supabase
-      .from("profiles")
-      .update({
-        gold_balance: supabase.rpc("increment_gold_balance", {
-          user_id: referrerId,
-          amount: 1000,
-        }),
-      })
-      .eq("id", referrerId);
+ if (referrerId) {
+  const { error } = await supabase.rpc("increment_gold_balance", {
+    user_id: referrerId,
+    amount: 1000,
+  });
 
-    if (referrerError) {
-      console.error("Referrer credit failed:", referrerError);
-    }
+  if (error) {
+    console.error("Referrer reward error:", error);
   }
+}
 
   return redirect("/dashboard?message=Check your email to confirm your account");
 }

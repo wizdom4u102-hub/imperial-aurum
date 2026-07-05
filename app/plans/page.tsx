@@ -7,7 +7,6 @@ import PlanComparison from "@/components/plans/PlanComparison";
 import PlanFAQ from "@/components/plans/PlanFAQ";
 import PlansCTA from "@/components/plans/PlansCTA";
 import Footer from "@/components/Footer";
-import Image from "next/image";
 import Link from "next/link";
 
 export default function PlansPage() {
@@ -16,13 +15,6 @@ export default function PlansPage() {
 
         <Link href="/" className="flex items-center gap-4">
         
-          <Image
-            src="/images/logo.png"
-            alt="Imperial Aurum"
-            width={65}
-            height={65}
-            className="object-contain"
-          />
         
           <div className="leading-none">
         
