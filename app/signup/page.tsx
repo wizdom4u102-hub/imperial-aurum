@@ -5,17 +5,12 @@ export default async function SignupPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    error?: string
-    message?: string
-    ref?: string
-  }>
-}) 
-{
-  const {
-  error,
-  message,
-  ref,
-} = await searchParams;
+    error?: string;
+    message?: string;
+    ref?: string;
+  }>;
+}) {
+  const { error, message, ref } = await searchParams;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-6">
@@ -36,16 +31,19 @@ export default async function SignupPage({
         )}
 
         <form action={signupAction} className="space-y-6">
+          {/* Email - WAS MISSING! */}
           <div>
             <label className="block text-sm mb-2 text-zinc-400">Email</label>
             <input
-              name="referral_code"
-              type="text"
-              defaultValue={ref || ''}
-              readOnly={!!ref}
+              name="email"
+              type="email"
+              required
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white"
+              placeholder="you@example.com"
             />
           </div>
+
+          {/* Password */}
           <div>
             <label className="block text-sm mb-2 text-zinc-400">Password</label>
             <input
@@ -56,6 +54,8 @@ export default async function SignupPage({
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white"
             />
           </div>
+
+          {/* Referral Code */}
           <div>
             <label className="block text-sm mb-2 text-zinc-400">
               Referral Code (optional)
@@ -63,9 +63,12 @@ export default async function SignupPage({
             <input
               name="referral_code"
               type="text"
+              defaultValue={ref || ''}
+              readOnly={!!ref}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white"
             />
           </div>
+
           <button
             type="submit"
             className="w-full bg-yellow-500 hover:bg-yellow-600 text-black py-4 rounded-xl font-bold"
