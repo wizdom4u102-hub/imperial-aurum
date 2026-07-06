@@ -8,7 +8,14 @@ export default function AppNavbar() {
 
   const hideNavbar =
     pathname.startsWith("/admin") ||
-    pathname.startsWith("/dashboard");
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/deposit") ||
+    pathname.startsWith("/withdraw") ||
+    pathname.startsWith("/shared-plans") ||
+    pathname.startsWith("/history") ||
+    pathname.startsWith("/referrals") ||
+    pathname.startsWith("/wallets") ||
+    pathname.startsWith("/convert");
 
   if (hideNavbar) return null;
 

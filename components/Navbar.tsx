@@ -14,22 +14,20 @@ export default function Navbar() {
   <Image
   src="/images/logo.png"
   alt="Imperial Aurum"
-  width={60}
-  height={60}
-  className="w-12 h-auto object-contain"
+  width={44}
+  height={44}
+  className="w-11 h-11 object-contain"
 />
 
-  <div className="leading-none">
+<div className="leading-none">
+  <h1 className="text-2xl font-bold text-yellow-400 tracking-wide">
+    Imperial Aurum
+  </h1>
 
-    <h1 className="text-3xl font-bold text-yellow-400 tracking-wide">
-      Imperial Aurum
-    </h1>
-
-    <p className="text-sm uppercase tracking-[8px] text-yellow-300">
-      Mining
-    </p>
-
-  </div>
+  <p className="text-xs uppercase tracking-[6px] text-yellow-300">
+    Mining
+  </p>
+</div>
 
 </Link>
 

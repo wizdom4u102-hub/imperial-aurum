@@ -8,7 +8,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Imperial Aurum",
   description: "Premium investment and wealth management platform.",
-  viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -21,6 +25,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col overflow-x-hidden bg-zinc-950 text-white">
 
         <AppNavbar />
+
         <LayoutExtras />
 
         <main className="flex-1 pt-20 w-full">
@@ -29,7 +34,6 @@ export default function RootLayout({
           </div>
         </main>
 
-        {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-XT4YYHBGMG"
           strategy="afterInteractive"
@@ -40,23 +44,22 @@ export default function RootLayout({
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', 'G-XT4YYHBGMG', {
+            gtag('config','G-XT4YYHBGMG',{
               page_path: window.location.pathname,
             });
           `}
         </Script>
 
-        {/* Microsoft Clarity */}
         <Script id="microsoft-clarity" strategy="afterInteractive">
           {`
             (function(c,l,a,r,i,t,y){
-              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-              t=l.createElement(r);
-              t.async=1;
-              t.src="https://www.clarity.ms/tag/"+i;
-              y=l.getElementsByTagName(r)[0];
-              y.parentNode.insertBefore(t,y);
-            })(window, document, "clarity", "script", "xdjf6pogkt");
+              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)}
+              t=l.createElement(r)
+              t.async=1
+              t.src="https://www.clarity.ms/tag/"+i
+              y=l.getElementsByTagName(r)[0]
+              y.parentNode.insertBefore(t,y)
+            })(window,document,"clarity","script","xdjf6pogkt")
           `}
         </Script>
 
