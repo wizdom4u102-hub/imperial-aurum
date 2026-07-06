@@ -60,7 +60,7 @@ export async function signupAction(formData: FormData) {
 
   const userId = data.user.id;
 
-  // Upsert profile + give starter gold
+  // Create profile
 const { error: profileError } = await supabase
   .from("profiles")
   .upsert(
@@ -76,7 +76,28 @@ const { error: profileError } = await supabase
   );
 
 if (profileError) {
-  console.error("Profile insert error:", profileError);
+  console.error(profileError);
+}
+
+// Create balances row
+const { error: balanceError } = await supabase
+  .from("balances")
+  .upsert(
+    {
+      user_id: userId,
+      cash: 0,
+      gold: 1000,
+      shares: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      onConflict: "user_id",
+    }
+  );
+
+if (balanceError) {
+  console.error("Balance creation error:", balanceError);
 }
 
   // Credit referrer
@@ -149,4 +170,118 @@ export async function logoutAction() {
   await supabase.auth.signOut();
 
   return redirect("/login");
+}
+
+/* ================================
+   ✅ CHANGE PASSWORD
+================================ */
+export async function changePasswordAction(formData: FormData) {
+  const supabase = await createActionClient();
+
+  const currentPassword = String(
+    formData.get("current_password") || ""
+  ).trim();
+
+  const newPassword = String(
+    formData.get("new_password") || ""
+  ).trim();
+
+  const confirmPassword = String(
+    formData.get("confirm_password") || ""
+  ).trim();
+
+  // Used by both user and admin pages
+  const redirectBase = String(
+    formData.get("redirect_base") || "user"
+  );
+
+  const changePasswordPage =
+    redirectBase === "admin"
+      ? "/admin/change-password"
+      : "/change-password";
+
+  const successPage =
+    redirectBase === "admin"
+      ? "/admin/dashboard"
+      : "/dashboard";
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return redirect(
+      `${changePasswordPage}?error=${encodeURIComponent(
+        "All fields are required"
+      )}`
+    );
+  }
+
+  if (newPassword.length < 6) {
+    return redirect(
+      `${changePasswordPage}?error=${encodeURIComponent(
+        "New password must be at least 6 characters"
+      )}`
+    );
+  }
+
+  if (newPassword !== confirmPassword) {
+    return redirect(
+      `${changePasswordPage}?error=${encodeURIComponent(
+        "New passwords do not match"
+      )}`
+    );
+  }
+
+  // Get currently logged-in user
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user?.email) {
+    return redirect(
+      `/login?error=${encodeURIComponent(
+        "Your session has expired. Please log in again."
+      )}`
+    );
+  }
+
+  // Verify current password
+  const { error: signInError } =
+    await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+
+  if (signInError) {
+    return redirect(
+      `${changePasswordPage}?error=${encodeURIComponent(
+        "Current password is incorrect"
+      )}`
+    );
+  }
+
+  // Update password
+  const { error: updateError } =
+    await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+  if (updateError) {
+    console.error("Change password error:", updateError);
+
+    return redirect(
+      `${changePasswordPage}?error=${encodeURIComponent(
+        updateError.message
+      )}`
+    );
+  }
+
+  // Optional: Sign out all other devices
+  await supabase.auth.signOut({
+    scope: "others",
+  });
+
+  return redirect(
+    `${successPage}?message=${encodeURIComponent(
+      "Password changed successfully."
+    )}`
+  );
 }

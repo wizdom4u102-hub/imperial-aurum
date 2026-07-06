@@ -142,6 +142,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   </p>
 </Link>
 
+<Link
+  href="/admin/change-password"
+  className="block rounded-2xl border border-zinc-800 bg-zinc-900 p-6 transition hover:border-yellow-500 hover:bg-zinc-800"
+>
+  <h3 className="text-lg font-bold text-white">
+    🔒 Change Password
+  </h3>
+
+  <p className="mt-2 text-sm text-zinc-400">
+    Update your administrator account password securely.
+  </p>
+</Link>
+
             {/* Front Menu */}
             <div className="pt-6 mt-6 border-t border-zinc-800">
               <div className="px-5 py-2 text-xs uppercase tracking-widest text-zinc-500 font-medium">Front Menu</div>

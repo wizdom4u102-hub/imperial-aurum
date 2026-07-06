@@ -168,7 +168,7 @@ console.log(
 
   cash: 0,
 
-  gold: 0,
+    gold: 1000,   
 
   shares: 0,
 
@@ -336,8 +336,8 @@ console.log(
   )
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 md:p-4 md:p-10">
-        <div className="bg-zinc-900 border border-red-500 rounded-3xl p-4 md:p-4 md:p-10 max-w-2xl w-full">
+    <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 lg:p-10">
+        <div className="bg-zinc-900 border border-red-500 rounded-3xl p-4 lg:p-10 max-w-2xl w-full">
           <h1 className="text-3xl font-bold text-red-500 mb-6">
             Dashboard Error
           </h1>

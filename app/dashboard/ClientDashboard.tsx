@@ -30,6 +30,10 @@ export default function ClientDashboard({
 {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+
+// Responsive helper
+const cardGrid =
+  "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6";
   const [balance, setBalance] = useState({
   gold: Number(profile?.balances?.gold || 0),
   cash: Number(profile?.balances?.cash || 0),
@@ -143,14 +147,14 @@ useEffect(() => {
   }, [balance.gold]);
 
   return (
-    <div className="flex min-h-screen bg-black text-white">
+    <div className="flex min-h-screen w-full bg-black text-white overflow-x-hidden">
       {/* SIDEBAR - unchanged */}
       <aside
   className={`
     fixed lg:sticky top-0 left-0 z-50
-    h-screen w-72
+    h-screen w-64 lg:w-72
     bg-zinc-950 border-r border-zinc-800
-    p-6 flex flex-col overflow-y-auto
+    p-4 lg:p-6 flex flex-col overflow-y-auto
     transform transition-transform duration-300
     ${menuOpen ? "translate-x-0" : "-translate-x-full"}
     lg:translate-x-0
@@ -163,7 +167,7 @@ useEffect(() => {
   ✕
 </button>
         <div className="mb-10">
-          <h1 className="text-2xl font-bold text-yellow-400">Imperial Aurum</h1>
+          <h1 className="text-xl lg:text-2xl font-bold text-yellow-400">Imperial Aurum</h1>
         </div>
 
         <nav className="flex-1 space-y-1 text-sm overflow-y-auto">
@@ -281,6 +285,13 @@ useEffect(() => {
     Referrals
   </Link>
 
+            <Link
+              href="/change-password"
+              className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors"
+            >
+              Change Password
+            </Link>
+
 </nav>
 
         <div className="mt-auto pt-8">
@@ -300,17 +311,17 @@ useEffect(() => {
 )}
 
       {/* MAIN DASHBOARD */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-4 md:p-4 md:p-10">
-        <div className="max-w-5xl mx-auto">
+      <main className="flex-1 p-4 md:p-8 lg:p-10">
+        <div className="max-w-7xl mx-auto w-full">
           <button
   onClick={() => setMenuOpen(true)}
-  className="lg:hidden mb-6 text-3xl text-white"
+  className="lg:hidden mb-3 text-3xl text-white"
 >
   ☰
 </button>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-12">
             <div>
-              <h2 className="text-2xl sm:text-3xl lg:text-2xl md:text-2xl md:text-4xl font-semibold">Dashboard</h2>
+              <h2 className="text-2xl md:text-4xl font-semibold">Dashboard</h2>
               <p className="text-zinc-400 mt-2">
                 Current Plan: <span className="text-yellow-400 font-medium">
                   {balance.is_premium ? 'Premium' : 'Free'}
@@ -320,28 +331,28 @@ useEffect(() => {
 
             <button
              onClick={() => router.refresh()}
-             className="w-full sm:w-auto px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-sm transition-colors"
+             className="w-full md:w-auto px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-sm transition-colors"
              >
              Refresh Balances
             </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
 
             {/* Gold Balance */}
-            <div className="bg-zinc-900 p-4 sm:p-6 lg:p-8 rounded-full aspect-square w-full max-w-[220px] sm:max-w-[260px] lg:max-w-none mx-auto flex flex-col items-center justify-center border-4 border-yellow-400 shadow-2xl">
+            <div className="bg-zinc-900 p-6 lg:p-8 rounded-full aspect-square w-full max-w-[220px] md:max-w-[260px] lg:max-w-[320px] mx-auto flex flex-col items-center justify-center border-4 border-yellow-400 shadow-2xl">
               <p className="text-zinc-400 text-sm mb-3">Gold Balance</p>
 
-              <div className="text-3xl sm:text-2xl md:text-2xl md:text-4xl lg:text-3xl md:text-5xl font-bold text-yellow-400 tracking-tighter">
+              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-yellow-400 tracking-tight">
                 {Number(displayGold || 0).toFixed(4)}
               </div>
             </div>
 
             {/* Cash Balance */}
-            <div className="bg-zinc-900 p-4 sm:p-6 lg:p-8 rounded-full aspect-square w-full max-w-[220px] sm:max-w-[260px] lg:max-w-none mx-auto flex flex-col items-center justify-center border-4 border-zinc-400 shadow-2xl">
+            <div className="bg-zinc-900 p-4 sm:p-6 lg:p-8 rounded-full aspect-square w-full max-w-[220px] md:max-w-[260px] lg:max-w-[320px] mx-auto flex flex-col items-center justify-center border-4 border-zinc-400 shadow-2xl">
               <p className="text-zinc-400 text-sm mb-3">Cash Balance</p>
 
-              <div className="text-3xl sm:text-2xl md:text-2xl md:text-4xl lg:text-3xl md:text-5xl font-bold tracking-tighter">
+              <div className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
                 ${Number(balance.cash || 0).toFixed(2)}
               </div>
             </div>
@@ -357,7 +368,7 @@ useEffect(() => {
           <div className="mt-16">
             <h3 className="text-xl font-medium mb-6">Recent Activity</h3>
 
-            <div className="bg-zinc-900 rounded-3xl p-8 grid md:grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="bg-zinc-900 rounded-3xl p-4 md:p-8 grid grid-cols-1 xl:grid-cols-2 gap-8">
 
               <div>
                 <h4 className="text-yellow-400 mb-5">Latest Deposits</h4>
@@ -409,7 +420,7 @@ useEffect(() => {
                 Invite friends and earn rewards when they join and deposit!
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col lg:flex-row gap-4">
                 <input
                   type="text"
                   value={`https://imperialaurummining.com/signup?ref=${profile?.id || ''}`}
@@ -423,7 +434,7 @@ useEffect(() => {
                     navigator.clipboard.writeText(link);
                     alert('Referral link copied!');
                   }}
-                  className="px-8 py-4 bg-yellow-400 hover:bg-yellow-300 text-black font-semibold rounded-2xl transition-colors whitespace-nowrap"
+                  className="w-full lg:w-auto px-8 py-4 bg-yellow-400 hover:bg-yellow-300 text-black font-semibold rounded-2xl transition-colors whitespace-nowrap"
                 >
                   Copy Link
                 </button>
@@ -763,7 +774,7 @@ console.log({
 
     return (
 
-      <div className="bg-gradient-to-br from-amber-900 to-yellow-900 p-4 sm:p-6 lg:p-8 rounded-full aspect-square w-full max-w-[220px] sm:max-w-[260px] lg:max-w-none mx-auto flex items-center justify-center border-4 border-yellow-400">
+      <div className="bg-gradient-to-br from-amber-900 to-yellow-900 p-4 sm:p-6 lg:p-8 rounded-full aspect-square w-full max-w-[220px] sm:max-w-[240px] lg:max-w-[300px] xl:max-w-[340px] mx-auto flex items-center justify-center border-4 border-yellow-400">
 
         Loading...
 
@@ -776,7 +787,7 @@ console.log({
 
   return (
 
-    <div className="bg-gradient-to-br from-amber-900 to-yellow-900 p-4 sm:p-6 lg:p-8 rounded-full aspect-square w-full max-w-[220px] sm:max-w-[260px] lg:max-w-none mx-auto flex flex-col items-center justify-center border-4 border-yellow-400 shadow-2xl text-center overflow-hidden">
+    <div className="bg-gradient-to-br from-amber-900 to-yellow-900 p-4 sm:p-6 lg:p-8 rounded-full aspect-square w-full max-w-[220px] sm:max-w-[240px] lg:max-w-[300px] xl:max-w-[340px] mx-auto flex flex-col items-center justify-center border-4 border-yellow-400 shadow-2xl text-center overflow-hidden">
 
       {timeLeft <= 0 ? (
 
