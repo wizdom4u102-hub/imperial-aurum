@@ -42,14 +42,14 @@ export default function DashboardNavbar() {
           </Link>
 
           <Link
-            href="/dashboard/plans"
+            href="/plans"
             className="hover:text-yellow-400"
           >
             Plans
           </Link>
 
           <Link
-            href="/dashboard/referrals"
+            href="/referrals"
             className="hover:text-yellow-400"
           >
             Referrals
@@ -111,7 +111,7 @@ export default function DashboardNavbar() {
             </Link>
 
             <Link
-              href="/dashboard/plans"
+              href="/plans"
               onClick={() => setOpen(false)}
               className="text-zinc-300 hover:text-yellow-400"
             >
@@ -119,7 +119,7 @@ export default function DashboardNavbar() {
             </Link>
 
             <Link
-              href="/dashboard/referrals"
+              href="/referrals"
               onClick={() => setOpen(false)}
               className="text-zinc-300 hover:text-yellow-400"
             >
