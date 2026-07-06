@@ -15,11 +15,11 @@ export default async function AllDepositsPage() {
     .order('created_at', { ascending: false });
 
   return (
-    <div className="min-h-screen bg-black text-white p-10">
+    <div className="min-h-screen bg-black text-white p-4 md:p-4 md:p-4 md:p-10">
       <div className="max-w-5xl mx-auto">
         <div className="flex justify-between mb-10">
           <div>
-            <h1 className="text-4xl font-semibold">All Deposits</h1>
+            <h1 className="text-2xl md:text-2xl md:text-4xl font-semibold">All Deposits</h1>
             <p className="text-zinc-400">Your deposit records</p>
           </div>
           <Link href="/deposit/new" className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-medium hover:bg-yellow-400 transition">
@@ -27,8 +27,8 @@ export default async function AllDepositsPage() {
           </Link>
         </div>
 
-        <div className="bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800">
-          <table className="w-full">
+        <div className="overflow-x-auto rounded-3xl border border-zinc-800 bg-zinc-900">
+          <table className="min-w-[850px] w-full">
             <thead className="bg-zinc-800">
               <tr>
                 <th className="p-5 text-left">Date</th>

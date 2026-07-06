@@ -10,7 +10,7 @@ export default async function DepositPage() {
     .eq('is_active', true)
 
   return (
-    <div className="p-10 max-w-2xl mx-auto">
+    <div className="p-4 md:p-4 md:p-10 max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Make Deposit</h1>
 
       {methods && methods.length > 0 ? (
@@ -42,7 +42,7 @@ export default async function DepositPage() {
           </div>
         ))
       ) : (
-        <p className="text-zinc-400 text-center py-20">
+        <p className="text-zinc-400 text-center py-10 md:py-20">
           No payment methods available
         </p>
       )}

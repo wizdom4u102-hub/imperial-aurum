@@ -3,7 +3,7 @@ import { loginAction } from '@/actions/auth'
 export default function AdminLoginPage() {
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center">
-      <div className="bg-zinc-900 p-10 rounded-3xl w-full max-w-md border border-yellow-500">
+      <div className="bg-zinc-900 p-4 md:p-4 md:p-10 rounded-3xl w-full max-w-md border border-yellow-500">
 
         <h1 className="text-3xl font-bold text-yellow-400 mb-6">
           Admin Login

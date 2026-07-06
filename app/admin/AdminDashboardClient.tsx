@@ -130,7 +130,7 @@ export default function AdminDashboardClient() {
         {/* HEADER */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold">Admin Dashboard</h1>
+            <h1 className="text-2xl md:text-2xl md:text-4xl font-bold">Admin Dashboard</h1>
             <p className="text-zinc-500 mt-2">
               Manage Users • {new Date().toLocaleDateString()}
             </p>
@@ -145,7 +145,7 @@ export default function AdminDashboardClient() {
         </div>
 
         {/* STATS SECTION */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-zinc-900 p-6 rounded-2xl">
             <p className="text-zinc-400 text-sm">Total Users</p>
             <p className="text-3xl font-bold mt-2">{stats?.totalUsers ?? 0}</p>
@@ -182,8 +182,8 @@ export default function AdminDashboardClient() {
         </div>
 
         {/* TABLE */}
-        <div className="bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800">
-          <table className="w-full">
+        <div className="overflow-x-auto rounded-3xl border border-zinc-800 bg-zinc-900">
+          <table className="min-w-[850px] w-full">
             <thead className="bg-zinc-950">
               <tr>
                 <th className="px-6 py-5 text-left text-zinc-400">Name</th>

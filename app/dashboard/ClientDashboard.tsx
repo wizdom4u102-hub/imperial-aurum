@@ -300,7 +300,7 @@ useEffect(() => {
 )}
 
       {/* MAIN DASHBOARD */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-10">
+      <main className="flex-1 p-4 sm:p-6 lg:p-4 md:p-4 md:p-10">
         <div className="max-w-5xl mx-auto">
           <button
   onClick={() => setMenuOpen(true)}
@@ -310,7 +310,7 @@ useEffect(() => {
 </button>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-12">
             <div>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold">Dashboard</h2>
+              <h2 className="text-2xl sm:text-3xl lg:text-2xl md:text-2xl md:text-4xl font-semibold">Dashboard</h2>
               <p className="text-zinc-400 mt-2">
                 Current Plan: <span className="text-yellow-400 font-medium">
                   {balance.is_premium ? 'Premium' : 'Free'}
@@ -326,13 +326,13 @@ useEffect(() => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-1 md:grid-cols-3 gap-8">
 
             {/* Gold Balance */}
             <div className="bg-zinc-900 p-4 sm:p-6 lg:p-8 rounded-full aspect-square w-full max-w-[220px] sm:max-w-[260px] lg:max-w-none mx-auto flex flex-col items-center justify-center border-4 border-yellow-400 shadow-2xl">
               <p className="text-zinc-400 text-sm mb-3">Gold Balance</p>
 
-              <div className="text-3xl sm:text-4xl lg:text-5xl font-bold text-yellow-400 tracking-tighter">
+              <div className="text-3xl sm:text-2xl md:text-2xl md:text-4xl lg:text-3xl md:text-5xl font-bold text-yellow-400 tracking-tighter">
                 {Number(displayGold || 0).toFixed(4)}
               </div>
             </div>
@@ -341,7 +341,7 @@ useEffect(() => {
             <div className="bg-zinc-900 p-4 sm:p-6 lg:p-8 rounded-full aspect-square w-full max-w-[220px] sm:max-w-[260px] lg:max-w-none mx-auto flex flex-col items-center justify-center border-4 border-zinc-400 shadow-2xl">
               <p className="text-zinc-400 text-sm mb-3">Cash Balance</p>
 
-              <div className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tighter">
+              <div className="text-3xl sm:text-2xl md:text-2xl md:text-4xl lg:text-3xl md:text-5xl font-bold tracking-tighter">
                 ${Number(balance.cash || 0).toFixed(2)}
               </div>
             </div>
@@ -357,7 +357,7 @@ useEffect(() => {
           <div className="mt-16">
             <h3 className="text-xl font-medium mb-6">Recent Activity</h3>
 
-            <div className="bg-zinc-900 rounded-3xl p-8 grid md:grid-cols-2 gap-12">
+            <div className="bg-zinc-900 rounded-3xl p-8 grid md:grid-cols-1 md:grid-cols-2 gap-12">
 
               <div>
                 <h4 className="text-yellow-400 mb-5">Latest Deposits</h4>

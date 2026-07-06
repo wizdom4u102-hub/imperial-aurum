@@ -299,7 +299,7 @@ async function fetchstats(userId: string) {
         <div className="flex items-center justify-between mb-8">
 
           <div>
-            <h1 className="text-4xl font-bold text-yellow-400">
+            <h1 className="text-2xl md:text-2xl md:text-4xl font-bold text-yellow-400">
               Manage Users
             </h1>
 
@@ -323,7 +323,7 @@ async function fetchstats(userId: string) {
         {/* USERS TABLE */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden">
 
-          <table className="w-full">
+          <table className="min-w-[850px] w-full">
 
             <thead className="bg-zinc-950 text-zinc-400">
   <tr>
@@ -343,7 +343,7 @@ async function fetchstats(userId: string) {
                 <tr>
                   <td
                     colSpan={7}
-                    className="text-center p-10 text-zinc-500"
+                    className="text-center p-4 md:p-4 md:p-10 text-zinc-500"
                   >
                     Loading users...
                   </td>
@@ -352,7 +352,7 @@ async function fetchstats(userId: string) {
                 <tr>
                   <td
                     colSpan={7}
-                    className="text-center p-10 text-zinc-500"
+                    className="text-center p-4 md:p-4 md:p-10 text-zinc-500"
                   >
                     No users found
                   </td>
@@ -500,7 +500,7 @@ async function fetchstats(userId: string) {
                   User Information
                 </h3>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                   <div>
                     <p className="text-zinc-400">
@@ -532,7 +532,7 @@ async function fetchstats(userId: string) {
                   Loading user stats...
                 </p>
               ) : stats && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-5 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-1 md:grid-cols-3 gap-5 mb-8">
 
                   <div className="bg-zinc-800 rounded-2xl p-5">
                     <p className="text-zinc-400">

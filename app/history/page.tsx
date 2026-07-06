@@ -27,11 +27,11 @@ export default async function AllHistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-10">
+    <div className="min-h-screen bg-black text-white p-4 md:p-4 md:p-4 md:p-10">
       <div className="max-w-6xl mx-auto">
 
-        <div className="flex items-center justify-between mb-10">
-          <h1 className="text-4xl font-semibold">All History</h1>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10">
+          <h1 className="text-2xl md:text-2xl md:text-4xl font-semibold">All History</h1>
           <Link href="/dashboard" className="text-yellow-400 hover:underline">
             ← Dashboard
           </Link>
@@ -53,8 +53,8 @@ function HistoryTable({ data }: { data: any[] }) {
   }
 
   return (
-    <div className="bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800">
-      <table className="w-full">
+    <div className="overflow-x-auto rounded-3xl border border-zinc-800 bg-zinc-900">
+      <table className="min-w-[850px] w-full">
 
         <thead className="bg-zinc-800">
           <tr>
