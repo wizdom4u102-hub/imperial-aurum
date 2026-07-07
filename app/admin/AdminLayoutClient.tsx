@@ -133,26 +133,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   href="/admin/history"
  className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
 >
-  <h3 className="text-xl font-bold mb-2">
-    History
+  <h3 className="text-lg font-bold text-white">
+   📜 History Page
   </h3>
-
-  <p className="text-zinc-400">
-    Platform history
-  </p>
 </Link>
 
 <Link
   href="/admin/change-password"
-  className="block rounded-2xl border border-zinc-800 bg-zinc-900 p-6 transition hover:border-yellow-500 hover:bg-zinc-800"
+  className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
 >
   <h3 className="text-lg font-bold text-white">
     🔒 Change Password
   </h3>
-
-  <p className="mt-2 text-sm text-zinc-400">
-    Update your administrator account password securely.
-  </p>
 </Link>
 
             {/* Front Menu */}

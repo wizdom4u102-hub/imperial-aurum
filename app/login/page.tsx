@@ -1,5 +1,6 @@
 'use client';
 
+import Link from "next/link";
 import { loginAction } from '../../actions/auth';   // Make sure this path is correct
 // Remove or comment out signupAction if it's not needed here
 
@@ -42,6 +43,13 @@ export default function LoginPage() {
             Login
           </button>
         </form>
+
+        <Link
+  href="/forgot-password"
+  className="text-sm text-yellow-400 hover:text-yellow-300"
+>
+  Forgot Password?
+</Link>
 
         <div className="text-center mt-8 text-sm text-zinc-500">
           Don't have an account?{' '}

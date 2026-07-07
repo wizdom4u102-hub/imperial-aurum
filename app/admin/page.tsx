@@ -352,18 +352,6 @@ const totalReferral =
                 Transaction history
               </p>
             </Link>
-<Link
-  href="/admin/history"
-  className="bg-zinc-900 p-8 rounded-3xl hover:bg-zinc-800"
->
-  <h3 className="text-xl font-bold mb-2">
-    History
-  </h3>
-
-  <p className="text-zinc-400">
-    Platform history
-  </p>
-</Link>
           </div>
 
         </div>

@@ -285,3 +285,113 @@ export async function changePasswordAction(formData: FormData) {
     )}`
   );
 }
+
+/* ================================
+   ✅ FORGOT PASSWORD
+================================ */
+export async function forgotPasswordAction(formData: FormData) {
+  const supabase = await createActionClient();
+
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
+
+  if (!email) {
+    return redirect(
+      `/forgot-password?error=${encodeURIComponent(
+        "Email is required."
+      )}`
+    );
+  }
+
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "http://localhost:3000";
+
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    email,
+    {
+      redirectTo: `${origin}/auth/callback?next=/reset-password`,
+    }
+  );
+
+  if (error) {
+    console.error("Forgot password error:", error);
+
+    return redirect(
+      `/forgot-password?error=${encodeURIComponent(
+        error.message
+      )}`
+    );
+  }
+
+  return redirect(
+    `/forgot-password?message=${encodeURIComponent(
+      "If an account with that email exists, a password reset link has been sent."
+    )}`
+  );
+}
+
+/* ================================
+   ✅ RESET PASSWORD
+================================ */
+export async function resetPasswordAction(formData: FormData) {
+  const supabase = await createActionClient();
+
+  const newPassword = String(
+    formData.get("new_password") || ""
+  ).trim();
+
+  const confirmPassword = String(
+    formData.get("confirm_password") || ""
+  ).trim();
+
+  if (!newPassword || !confirmPassword) {
+    return redirect(
+      `/reset-password?error=${encodeURIComponent(
+        "Both password fields are required."
+      )}`
+    );
+  }
+
+  if (newPassword.length < 6) {
+    return redirect(
+      `/reset-password?error=${encodeURIComponent(
+        "Password must be at least 6 characters."
+      )}`
+    );
+  }
+
+  if (newPassword !== confirmPassword) {
+    return redirect(
+      `/reset-password?error=${encodeURIComponent(
+        "Passwords do not match."
+      )}`
+    );
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (error) {
+    console.error("Reset password error:", error);
+
+    return redirect(
+      `/reset-password?error=${encodeURIComponent(
+        error.message
+      )}`
+    );
+  }
+
+  // Optional: sign out other sessions
+  await supabase.auth.signOut({
+    scope: "others",
+  });
+
+  return redirect(
+    `/login?message=${encodeURIComponent(
+      "Your password has been reset successfully. Please sign in."
+    )}`
+  );
+}

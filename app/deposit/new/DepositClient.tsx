@@ -11,7 +11,7 @@ export default function DepositClient({ methods }: any) {
     <div>
 
       {/* 💰 AMOUNT INPUT */}
-      <div className="bg-zinc-900 p-6 rounded-2xl mb-8">
+      <div className="bg-zinc-900 p-4 sm:p-6 rounded-2xl mb-8">
         <label className="text-sm text-zinc-400">Deposit Amount</label>
 
         <input
@@ -19,7 +19,7 @@ export default function DepositClient({ methods }: any) {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="Enter amount"
-          className="w-full mt-2 p-3 bg-zinc-800 rounded-lg outline-none"
+          className="mt-2 w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-white outline-none focus:border-yellow-500"
         />
       </div>
 
@@ -30,7 +30,7 @@ export default function DepositClient({ methods }: any) {
           {methods.map((m: any) => (
             <div
               key={m.id}
-              className="bg-zinc-900 p-6 rounded-2xl border border-zinc-800"
+              className="bg-zinc-900 p-4 sm:p-6 rounded-2xl border border-zinc-800"
             >
 
               {/* METHOD INFO */}

@@ -1,138 +1,195 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import Link from "next/link";
 
 export default async function SharedPlansHistoryPage() {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/login')
+    redirect("/login");
   }
 
   const { data, error } = await supabase
-  .from('transactions')
-  .select('*')
-  .eq('user_id', user.id)
-  .in('type', [
-    'roi',
-    'shared_plan_completed',
-    'shared_plan_purchase',
-  ])
-  .order('created_at', {
-    ascending: false,
-  })
+    .from("transactions")
+    .select("*")
+    .eq("user_id", user.id)
+    .in("type", [
+      "roi",
+      "shared_plan_completed",
+      "shared_plan_purchase",
+    ])
+    .order("created_at", {
+      ascending: false,
+    });
 
   if (error) {
-    console.log(error)
+    console.error(error);
   }
 
-  return (
-    <div className="min-h-screen bg-black text-white p-10">
-      <div className="max-w-6xl mx-auto">
+  const getType = (type: string) => {
+    switch (type) {
+      case "roi":
+        return {
+          text: "ROI Profit",
+          color: "text-cyan-400",
+        };
 
-        <div className="flex items-center justify-between mb-10">
-          <h1 className="text-4xl font-bold">
+      case "shared_plan_completed":
+        return {
+          text: "Plan Completed",
+          color: "text-green-400",
+        };
+
+      case "shared_plan_purchase":
+        return {
+          text: "Plan Purchased",
+          color: "text-yellow-400",
+        };
+
+      default:
+        return {
+          text: type,
+          color: "text-white",
+        };
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-black text-white px-4 py-6 sm:px-6 lg:px-10">
+      <div className="mx-auto max-w-6xl">
+        {/* Header */}
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-bold sm:text-3xl lg:text-4xl">
             Shared Plan ROI History
           </h1>
 
           <Link
             href="/history"
-            className="text-yellow-400 hover:underline"
+            className="text-yellow-400 transition hover:text-yellow-300"
           >
             ← Back
           </Link>
         </div>
 
         {!data || data.length === 0 ? (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-10 text-zinc-500">
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8 text-center text-zinc-500">
             No ROI history yet.
           </div>
         ) : (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden">
+          <>
+            {/* Mobile Cards */}
+            <div className="space-y-4 md:hidden">
+              {data.map((item: any) => {
+                const type = getType(item.type);
 
-            <table className="w-full">
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"
+                  >
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-sm text-zinc-500">
+                        Type
+                      </span>
 
-              <thead className="bg-zinc-800">
-                <tr>
-                  <th className="p-5 text-left">
-                    Date
-                  </th>
+                      <span className={`font-bold ${type.color}`}>
+                        {type.text}
+                      </span>
+                    </div>
 
-                  <th className="p-5 text-left">
-                    Type
-                  </th>
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-sm text-zinc-500">
+                        Amount
+                      </span>
 
-                  <th className="p-5 text-left">
-                    Amount
-                  </th>
+                      <span className="text-lg font-bold">
+                        ${Number(item.amount || 0).toFixed(2)}
+                      </span>
+                    </div>
 
-                  <th className="p-5 text-left">
-                    Status
-                  </th>
-                </tr>
-              </thead>
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-sm text-zinc-500">
+                        Status
+                      </span>
 
-              <tbody>
+                      <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-400">
+                        {item.status}
+                      </span>
+                    </div>
 
-                {data.map((item: any) => (
-  <tr
-    key={item.id}
-    className="border-t border-zinc-800"
-  >
-    <td className="p-5 text-zinc-400">
-      {new Date(
-        item.created_at
-      ).toLocaleString()}
-    </td>
+                    <div className="border-t border-zinc-800 pt-3 text-xs text-zinc-500">
+                      {new Date(item.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
-    <td className="p-5">
-      {item.type === 'roi' && (
-        <span className="text-cyan-400 font-bold">
-          ROI Profit
-        </span>
-      )}
+            {/* Desktop Table */}
+            <div className="hidden overflow-x-auto rounded-3xl border border-zinc-800 bg-zinc-900 md:block">
+              <table className="min-w-full">
+                <thead className="bg-zinc-800">
+                  <tr>
+                    <th className="p-5 text-left font-semibold">
+                      Date
+                    </th>
+                    <th className="p-5 text-left font-semibold">
+                      Type
+                    </th>
+                    <th className="p-5 text-left font-semibold">
+                      Amount
+                    </th>
+                    <th className="p-5 text-left font-semibold">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
 
-      {item.type ===
-        'shared_plan_completed' && (
-        <span className="text-green-400 font-bold">
-          Plan Completed
-        </span>
-      )}
+                <tbody>
+                  {data.map((item: any) => {
+                    const type = getType(item.type);
 
-      {item.type ===
-        'shared_plan_purchase' && (
-        <span className="text-yellow-400 font-bold">
-          Plan Purchased
-        </span>
-      )}
-    </td>
+                    return (
+                      <tr
+                        key={item.id}
+                        className="border-t border-zinc-800 transition hover:bg-zinc-800/40"
+                      >
+                        <td className="p-5 text-zinc-400">
+                          {new Date(
+                            item.created_at
+                          ).toLocaleString()}
+                        </td>
 
-    <td className="p-5 font-bold">
-      ${Number(
-        item.amount || 0
-      ).toFixed(2)}
-    </td>
+                        <td className="p-5">
+                          <span
+                            className={`font-bold ${type.color}`}
+                          >
+                            {type.text}
+                          </span>
+                        </td>
 
-    <td className="p-5">
-      <span className="px-4 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs">
-        {item.status}
-      </span>
-    </td>
-  </tr>
-))}
+                        <td className="p-5 font-bold">
+                          ${Number(item.amount || 0).toFixed(2)}
+                        </td>
 
-              </tbody>
-
-            </table>
-
-          </div>
+                        <td className="p-5">
+                          <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-1 text-xs text-cyan-400">
+                            {item.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
-
       </div>
     </div>
-  )
+  );
 }
