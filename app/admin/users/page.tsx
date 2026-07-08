@@ -291,15 +291,15 @@ async function fetchstats(userId: string) {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
+    <div className="min-h-screen bg-black text-white p-4 md:p-8">
 
       <div className="max-w-7xl mx-auto">
 
         {/* HEADER */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
 
           <div>
-            <h1 className="text-2xl md:text-2xl md:text-4xl font-bold text-yellow-400">
+            <h1 className="text-2xl md:text-4xl font-bold text-yellow-400">
               Manage Users
             </h1>
 
@@ -315,17 +315,17 @@ async function fetchstats(userId: string) {
             onChange={(e) =>
               setSearch(e.target.value)
             }
-            className="bg-zinc-900 border border-zinc-700 rounded-2xl px-5 py-3 text-white outline-none"
+            className="w-full md:w-80 bg-zinc-900 border border-zinc-700 rounded-2xl px-5 py-3 text-white outline-none"
           />
 
         </div>
 
         {/* USERS TABLE */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-x-auto">
 
-          <table className="min-w-[850px] w-full">
+          <table className="min-w-[700px] w-full text-sm md:text-base">
 
-            <thead className="bg-zinc-950 text-zinc-400">
+            <thead className="border-b border-zinc-700 whitespace-nowrap">
   <tr>
     <th className="p-4 text-left">Name</th>
     <th>Email</th>
@@ -364,15 +364,17 @@ async function fetchstats(userId: string) {
                     className="border-t border-zinc-800"
                   >
 
-                    <td className="p-5">
+                    <td className="p-3 md:p-5 whitespace-nowrap">
   {user.email?.split('@')[0]}
 </td>
 
-<td className="p-5">
-  {user.email}
+<td className="p-3 md:p-5 whitespace-nowrap">
+  <span className="block max-w-[220px] truncate">
+    {user.email}
+  </span>
 </td>
 
-                    <td className="p-5">
+                    <td className="p-3 md:p-5 whitespace-nowrap">
 
                       <span
                         className={`px-3 py-1 rounded-full text-sm ${
@@ -387,7 +389,7 @@ async function fetchstats(userId: string) {
 
                     </td>
 
-                    <td className="p-5">
+                    <td className="p-3 md:p-5 whitespace-nowrap">
 
                       {user.verified ? (
                         <span className="text-emerald-400">
@@ -415,7 +417,7 @@ async function fetchstats(userId: string) {
 
                     </td>
 
-                    <td className="p-5 text-zinc-400">
+                    <td className="p-3 md:p-5 text-zinc-400 whitespace-nowrap">
 
                       {user.created_at
                         ? new Date(
@@ -425,14 +427,15 @@ async function fetchstats(userId: string) {
 
                     </td>
 
-                    <td className="p-5">
+                    <td className="p-3 md:p-5 text-right">
 
                       <button
                         onClick={() =>
                           openUser(user)
                         }
-                        className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 rounded-xl font-semibold"
-                      >
+                         className="bg-yellow-500 hover:bg-yellow-600 text-black px-3 md:px-4 py-2 rounded-xl font-semibold text-sm"
+                         >
+                    
                         Open
                       </button>
 
@@ -452,9 +455,9 @@ async function fetchstats(userId: string) {
 
       {/* USER MODAL */}
       {selectedUser && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6">
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-start md:items-center justify-center p-2 md:p-6 overflow-y-auto">
 
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-7xl flex overflow-hidden">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-7xl flex flex-col lg:flex-row overflow-hidden">
 
             {/* LEFT */}
             <UserActions
@@ -468,13 +471,13 @@ async function fetchstats(userId: string) {
             />
 
             {/* RIGHT */}
-            <div className="flex-1 p-8 overflow-y-auto max-h-[90vh]">
+            <div className="flex-1 p-4 md:p-8 overflow-y-auto max-h-[90vh]">
 
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
 
                 <div>
 
-                  <h2 className="text-3xl font-bold text-white">
+                  <h2 className="text-2xl md:text-3xl font-bold text-white">
                     User Dashboard
                   </h2>
 
@@ -494,16 +497,16 @@ async function fetchstats(userId: string) {
               </div>
 
               {/* USER INFO */}
-              <div className="bg-zinc-800 rounded-3xl p-6 mb-8">
+              <div className="bg-zinc-800 rounded-3xl p-4 md:p-6 mb-8">
 
                 <h3 className="text-xl font-semibold mb-5">
                   User Information
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
 
                   <div>
-                    <p className="text-zinc-400">
+                    <p className="text-zinc-400 break-all">
                       Email
                     </p>
 
@@ -532,74 +535,74 @@ async function fetchstats(userId: string) {
                   Loading user stats...
                 </p>
               ) : stats && (
-                <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5 mb-8">
 
-                  <div className="bg-zinc-800 rounded-2xl p-5">
+                  <div className="bg-zinc-800 rounded-2xl p-4 md:p-5">
                     <p className="text-zinc-400">
                       Cash
                     </p>
 
-                    <h3 className="text-2xl font-bold text-emerald-400 mt-2">
+                    <h3 className="text-xl md:text-2xl font-bold text-emerald-400 mt-2">
                       {money(stats.cash ?? 0)}
                     </h3>
                   </div>
 
-                  <div className="bg-zinc-800 rounded-2xl p-5">
+                  <div className="bg-zinc-800 rounded-2xl p-4 md:p-5">
                     <p className="text-zinc-400">
                       Gold
                     </p>
 
-                    <h3 className="text-2xl font-bold text-yellow-400 mt-2">
+                    <h3 className="text-xl md:text-2xl font-bold text-yellow-400 mt-2">
                       {money(stats.gold ?? 0)}
                     </h3>
                   </div>
 
-                  <div className="bg-zinc-800 rounded-2xl p-5">
+                  <div className="bg-zinc-800 rounded-2xl p-4 md:p-5">
                     <p className="text-zinc-400">
                       Shares
                     </p>
 
-                    <h3 className="text-2xl font-bold text-blue-400 mt-2">
+                    <h3 className="text-xl md:text-2xl font-bold text-blue-400 mt-2">
                       {money(stats.shares ?? 0)}
                     </h3>
                   </div>
 
-                  <div className="bg-zinc-800 rounded-2xl p-5">
+                  <div className="bg-zinc-800 rounded-2xl p-4 md:p-5">
                     <p className="text-zinc-400">
                       Deposits
                     </p>
 
-                    <h3 className="text-2xl font-bold mt-2">
+                    <h3 className="text-xl md:text-2xl font-bold mt-2">
                       {money(stats.totalDeposits ?? 0)}
                     </h3>
                   </div>
 
-                  <div className="bg-zinc-800 rounded-2xl p-5">
+                  <div className="bg-zinc-800 rounded-2xl p-4 md:p-5">
                     <p className="text-zinc-400">
                       Withdrawals
                     </p>
 
-                    <h3 className="text-2xl font-bold mt-2">
+                    <h3 className="text-xl md:text-2xl font-bold mt-2">
                       {money(stats.totalWithdrawals ?? 0)}
                     </h3>
                   </div>
 
-                  <div className="bg-zinc-800 rounded-2xl p-5">
+                  <div className="bg-zinc-800 rounded-2xl p-4 md:p-5">
                     <p className="text-zinc-400">
                       Investments
                     </p>
 
-                    <h3 className="text-2xl font-bold mt-2">
+                    <h3 className="text-xl md:text-2xl font-bold mt-2">
                       {money(stats.totalInvestments ?? 0)}
                     </h3>
                   </div>
 
-                  <div className="bg-zinc-800 rounded-2xl p-5">
+                  <div className="bg-zinc-800 rounded-2xl p-4 md:p-5">
                     <p className="text-zinc-400">
                       Transactions
                     </p>
 
-                    <h3 className="text-2xl font-bold mt-2">
+                    <h3 className="text-xl md:text-2xl font-bold mt-2">
                       {money(stats.totalTransactions ?? 0)}
                     </h3>
                   </div>

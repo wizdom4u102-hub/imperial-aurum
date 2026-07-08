@@ -1,113 +1,208 @@
-import { supabaseAdmin } from '@/lib/supabase/admin'
-import { requireAdminPage } from '@/lib/admin'
-import DepositActions from './DepositActions'
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { requireAdminPage } from "@/lib/admin";
+import DepositActions from "./DepositActions";
 
 export default async function ManageDeposits({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>
+  searchParams: Promise<{
+    filter?: string;
+  }>;
 }) {
-  // ✅ fix Next.js 16 searchParams
-  const params = await searchParams
+  // Protect page
+  await requireAdminPage();
 
-  // 🔐 protect route
-  // await requireAdminPage()
+  const params = await searchParams;
 
-  const supabase = supabaseAdmin
+  const filter = params?.filter || "all";
 
-  const filter = params?.filter || 'all'
+  let query = supabaseAdmin
+    .from("deposits")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-let query = supabase
-  .from('deposits')
-  .select('*')
-  .order('created_at', { ascending: false })
+  if (filter === "pending") {
+    query = query.eq("status", "pending");
+  }
 
-if (filter === 'pending') {
-  query = query.eq('status', 'pending')
-}
+  // "Approved" button still filters completed deposits
+  if (filter === "approved") {
+    query = query.eq("status", "completed");
+  }
 
-if (filter === 'approved') {
-  query = query.eq('status', 'approved')
-}
+  // Future use
+  if (filter === "rejected") {
+    query = query.eq("status", "rejected");
+  }
 
-const { data: deposits, error } = await query
+  const { data: deposits, error } = await query;
 
-console.log('DEPOSITS:', deposits)
-console.log('DEPOSITS ERROR:', error)
-
-if (error) {
-  throw new Error(error.message)
-}
+  if (error) {
+    throw new Error(error.message);
+  }
 
   return (
-    <div className="p-10">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-black text-white p-4 md:p-8 lg:p-10">
 
-        {/* HEADER */}
-        <div className="flex justify-between items-center mb-10">
-          <h1 className="text-4xl font-bold">Manage Deposits</h1>
+      <div className="max-w-7xl mx-auto">
 
-          <div className="flex gap-4">
-            <a href="/admin/deposits?filter=all" className="px-4 py-2 bg-zinc-800 rounded-xl text-sm">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+
+          <div>
+            <h1 className="text-2xl md:text-4xl font-bold">
+              Manage Deposits
+            </h1>
+
+            <p className="text-zinc-400 mt-2">
+              Review and approve user deposits
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+
+            <a
+              href="/admin/deposits?filter=all"
+              className={`px-4 py-2 rounded-xl text-sm ${
+                filter === "all"
+                  ? "bg-yellow-500 text-black"
+                  : "bg-zinc-800 hover:bg-zinc-700"
+              }`}
+            >
               All
             </a>
-            <a href="/admin/deposits?filter=pending" className="px-4 py-2 bg-zinc-800 rounded-xl text-sm">
+
+            <a
+              href="/admin/deposits?filter=pending"
+              className={`px-4 py-2 rounded-xl text-sm ${
+                filter === "pending"
+                  ? "bg-yellow-500 text-black"
+                  : "bg-zinc-800 hover:bg-zinc-700"
+              }`}
+            >
               Pending
             </a>
-            <a href="/admin/deposits?filter=approved" className="px-4 py-2 bg-zinc-800 rounded-xl text-sm">
+
+            <a
+              href="/admin/deposits?filter=approved"
+              className={`px-4 py-2 rounded-xl text-sm ${
+                filter === "approved"
+                  ? "bg-yellow-500 text-black"
+                  : "bg-zinc-800 hover:bg-zinc-700"
+              }`}
+            >
               Approved
             </a>
+
           </div>
         </div>
 
-        {/* LIST */}
         <div className="space-y-4">
 
-          {deposits && deposits.length > 0 ? (
-            deposits.map((deposit: any) => (
-              <div key={deposit.id} className="bg-zinc-900 p-6 rounded-2xl">
+                    {deposits && deposits.length > 0 ? (
+            deposits.map((deposit: any) => {
 
-                {/* AMOUNT */}
-                <p className="text-xl font-bold text-yellow-400">
-                  ${deposit.amount}
-                </p>
+              const statusColor =
+                deposit.status === "completed"
+                  ? "bg-green-500/20 text-green-400"
+                  : deposit.status === "rejected"
+                  ? "bg-red-500/20 text-red-400"
+                  : "bg-yellow-500/20 text-yellow-400";
 
-                {/* METHOD */}
-                <p className="text-zinc-400">
-                  Method ID: {deposit.method_id || 'N/A'}
-                </p>
+              return (
 
-                {/* STATUS */}
-                <p className="text-sm text-zinc-500">
-  Status: {deposit.status}
-</p>
+                <div
+                  key={deposit.id}
+                  className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 md:p-6"
+                >
 
-<p className="text-xs text-red-400">
-  USER ID: {deposit.user_id}
-</p>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-<div className="flex gap-3 mt-4">
-  <DepositActions id={deposit.id} />
+                    <div className="space-y-3">
 
-  <a
-    href={`/admin/users/${deposit.user_id}`}
-    className="bg-blue-600 px-4 py-2 rounded-xl text-white text-sm"
-  >
-    View User
-  </a>
-</div>
+                      <h2 className="text-2xl font-bold text-yellow-400">
+                        ${deposit.amount}
+                      </h2>
 
-              </div>
-            ))
+                      <p className="text-zinc-300">
+                        <span className="font-semibold">
+                          User:
+                        </span>{" "}
+                        {deposit.user_id}
+                      </p>
+
+                      <p className="text-zinc-400">
+                        <span className="font-semibold">
+                          Method:
+                        </span>{" "}
+                        {deposit.method_id || "N/A"}
+                      </p>
+
+                      <p className="text-zinc-400">
+                        <span className="font-semibold">
+                          Submitted:
+                        </span>{" "}
+                        {new Date(
+                          deposit.created_at
+                        ).toLocaleString()}
+                      </p>
+
+                      <div>
+
+                        <span
+                          className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${statusColor}`}
+                        >
+                          {deposit.status}
+                        </span>
+
+                      </div>
+
+                      {deposit.reject_reason && (
+                        <p className="text-red-400 text-sm">
+                          <strong>Reason:</strong>{" "}
+                          {deposit.reject_reason}
+                        </p>
+                      )}
+
+                    </div>
+
+                    <div className="flex flex-col justify-between gap-4">
+
+                      <a
+                        href={`/admin/users/${deposit.user_id}`}
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-center py-3 rounded-xl"
+                      >
+                        View User
+                      </a>
+
+                      <DepositActions
+                        id={deposit.id}
+                        status={deposit.status}
+                      />
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              );
+
+            })
           ) : (
-            <p className="text-zinc-400 text-center py-20">
-              No deposits found
-            </p>
+
+            <div className="bg-zinc-900 rounded-2xl p-10 text-center text-zinc-400">
+              No deposits found.
+            </div>
+
           )}
 
         </div>
 
       </div>
+
     </div>
-  )
+
+  );
+
 }

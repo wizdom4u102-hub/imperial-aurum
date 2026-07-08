@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendEmail } from '@/lib/email/sendEmail'
+import { depositSubmittedEmail } from '@/lib/email/templates'
 
 export async function POST(req: Request) {
   try {
@@ -134,6 +136,30 @@ if (txError) {
     txError
   )
 
+}
+
+// ================= SEND EMAIL =================
+
+try {
+  const { data: method } = await supabase
+    .from('payment_methods')
+    .select('name')
+    .eq('id', method_id)
+    .single()
+
+  await sendEmail({
+    to: user.email!,
+    subject: 'Deposit Request Received',
+    html: depositSubmittedEmail(
+      Number(amount),
+      method?.name || 'Payment Method'
+    ),
+  })
+} catch (emailError) {
+  console.error(
+    'DEPOSIT EMAIL ERROR:',
+    emailError
+  )
 }
 
     // ================= SUCCESS =================

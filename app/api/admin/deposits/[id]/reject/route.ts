@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email/sendEmail";
-import { withdrawalRejectedEmail } from "@/lib/email/templates";
+import { depositRejectedEmail } from "@/lib/email/templates";
 
 export async function POST(
   req: Request,
@@ -15,7 +15,7 @@ export async function POST(
 ) {
   try {
     console.log(
-      "=========== REJECT WITHDRAWAL =========="
+      "=========== REJECT DEPOSIT =========="
     );
 
     // ================= ADMIN =================
@@ -39,10 +39,16 @@ export async function POST(
     const { id } =
       await context.params;
 
+      const body = await req.json();
+
+const reason = String(
+  body?.reason || ""
+).trim();
+
     if (!id) {
       return NextResponse.json(
         {
-          error: "Withdrawal ID is required",
+          error: "Deposit ID is required",
         },
         {
           status: 400,
@@ -50,24 +56,24 @@ export async function POST(
       );
     }
 
-    // ================= GET WITHDRAWAL =================
+    // ================= GET DEPOSIT =================
 
     const {
-      data: withdrawal,
-      error: withdrawalError,
+      data: deposit,
+      error: depositError,
     } = await supabaseAdmin
-      .from("withdrawals")
+      .from("deposits")
       .select("*")
       .eq("id", id)
       .single();
 
     if (
-      withdrawalError ||
-      !withdrawal
+      depositError ||
+      !deposit
     ) {
       return NextResponse.json(
         {
-          error: "Withdrawal not found",
+          error: "Deposit not found",
         },
         {
           status: 404,
@@ -78,13 +84,13 @@ export async function POST(
     // ================= ALREADY REJECTED =================
 
     if (
-      withdrawal.status ===
+      deposit.status ===
       "rejected"
     ) {
       return NextResponse.json(
         {
           error:
-            "Withdrawal already rejected",
+            "Deposit already rejected",
         },
         {
           status: 400,
@@ -93,11 +99,11 @@ export async function POST(
     }
 
     const userId =
-      withdrawal.user_id;
+      deposit.user_id;
 
     const amount =
       Number(
-        withdrawal.amount || 0
+        deposit.amount || 0
       );
 
     // ================= GET USER EMAIL =================
@@ -112,28 +118,32 @@ export async function POST(
     const userEmail =
       profile.user?.email;
 
-    // ================= UPDATE WITHDRAWAL =================
+    // ================= UPDATE DEPOSIT =================
 
     const {
       error:
-        withdrawalUpdateError,
+        depositUpdateError,
     } =
       await supabaseAdmin
-        .from("withdrawals")
+        .from("deposits")
         .update({
-          status: "rejected",
-          updated_at:
-            new Date().toISOString(),
-        })
+  status: "rejected",
+
+  reject_reason:
+    reason || null,
+
+  updated_at:
+    new Date().toISOString(),
+})
         .eq("id", id);
 
     if (
-      withdrawalUpdateError
+      depositUpdateError
     ) {
       return NextResponse.json(
         {
           error:
-            withdrawalUpdateError.message,
+            depositUpdateError.message,
         },
         {
           status: 500,
@@ -150,7 +160,10 @@ export async function POST(
         .from("transactions")
         .update({
           status: "rejected",
-          description: `Withdrawal request of $${amount} was rejected by admin.`,
+          description:
+  reason
+    ? `Deposit rejected: ${reason}`
+    : `Deposit request of $${amount} was rejected by admin.`,
           updated_at:
             new Date().toISOString(),
         })
@@ -160,14 +173,13 @@ export async function POST(
         )
         .eq(
           "type",
-          "withdrawal"
+          "deposit"
         )
         .eq(
           "status",
           "pending"
         );
-
-          // ================= SEND EMAIL =================
+            // ================= SEND EMAIL =================
 
     try {
 
@@ -175,8 +187,8 @@ export async function POST(
 
         await sendEmail({
           to: userEmail,
-          subject: "Withdrawal Request Rejected",
-          html: withdrawalRejectedEmail(
+          subject: "Deposit Request Rejected",
+          html: depositRejectedEmail(
             amount
           ),
         });
@@ -186,7 +198,7 @@ export async function POST(
     } catch (emailError) {
 
       console.error(
-        "WITHDRAWAL REJECTED EMAIL ERROR:",
+        "DEPOSIT REJECTED EMAIL ERROR:",
         emailError
       );
 
@@ -195,19 +207,19 @@ export async function POST(
     // ================= SUCCESS =================
 
     console.log(
-      "✅ WITHDRAWAL REJECTED"
+      "✅ DEPOSIT REJECTED"
     );
 
     return NextResponse.json({
       success: true,
       message:
-        "Withdrawal rejected successfully",
+        "Deposit rejected successfully",
     });
 
   } catch (err: any) {
 
     console.error(
-      "❌ WITHDRAWAL REJECTION ERROR:",
+      "❌ DEPOSIT REJECTION ERROR:",
       err
     );
 

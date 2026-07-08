@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireAdminApi  } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { sendEmail } from "@/lib/email/sendEmail";
+import { withdrawalApprovedEmail } from "@/lib/email/templates";
 
 export async function POST(
   req: Request,
@@ -101,6 +103,15 @@ export async function POST(
       Number(
         withdrawal.amount || 0
       )
+
+      // ================= GET USER EMAIL =================
+
+const {
+  data: profile,
+} = await supabaseAdmin.auth.admin.getUserById(userId);
+
+const userEmail =
+  profile.user?.email;
 
     // ================= GET USER BALANCE =================
     const {
@@ -339,13 +350,48 @@ export async function POST(
       }
     }
 
-    console.log(
-      '✅ WITHDRAWAL APPROVED SUCCESSFULLY'
-    )
+    // =====================================================
+// SEND APPROVAL EMAIL
+// =====================================================
 
-    return NextResponse.json({
-      success: true
-    })
+try {
+
+  if (userEmail) {
+
+    await sendEmail({
+
+      to: userEmail,
+
+      subject: "Withdrawal Approved",
+
+      html: withdrawalApprovedEmail(
+        withdrawAmount
+      ),
+
+    });
+
+  }
+
+} catch (emailError) {
+
+  console.error(
+    "WITHDRAWAL APPROVED EMAIL ERROR:",
+    emailError
+  );
+
+}
+
+// =====================================================
+// SUCCESS RESPONSE
+// =====================================================
+
+console.log(
+  "✅ WITHDRAWAL APPROVED SUCCESSFULLY"
+);
+
+return NextResponse.json({
+  success: true,
+});
 
   } catch (err: any) {
 

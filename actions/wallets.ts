@@ -195,139 +195,107 @@ export async function addWallet(formData: FormData) {
 
 // ✅ DELETE WALLET
 export async function deleteWallet(id: string) {
-
-  const supabase =
-    await createClient()
-
-  const {
-    error
-  } =
-    await supabase
-      .from('wallets')
-      .delete()
-      .eq('id', id)
-
-  if (error) {
-
-    throw new Error(
-      error.message
-    )
-
-  }
-
-  revalidatePath('/wallets')
-}
-
-// ✅ SET DEFAULT (atomic-safe)
-export async function setDefaultWallet(id: string) {
-
-  const supabase =
-    await createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
-  } =
-    await supabase.auth.getUser()
+  } = await supabase.auth.getUser()
 
   if (!user) {
-
-    throw new Error(
-      'Unauthorized'
-    )
-
+    throw new Error('Unauthorized')
   }
 
-  // remove old default
-  await supabase
+  const { error } = await supabase
     .from('wallets')
-    .update({
-      is_default: false
-    })
-    .eq(
-      'user_id',
-      user.id
-    )
-
-  // set new
-  const {
-    error
-  } =
-    await supabase
-      .from('wallets')
-      .update({
-        is_default: true
-      })
-      .eq('id', id)
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id)
 
   if (error) {
-
-    throw new Error(
-      error.message
-    )
-
+    throw new Error(error.message)
   }
 
   revalidatePath('/wallets')
+  revalidatePath('/wallets/manual')
+}
+
+// ✅ SET DEFAULT
+export async function setDefaultWallet(id: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+
+  await supabase
+    .from('wallets')
+    .update({
+      is_default: false,
+    })
+    .eq('user_id', user.id)
+
+  const { error } = await supabase
+    .from('wallets')
+    .update({
+      is_default: true,
+    })
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath('/wallets')
+  revalidatePath('/wallets/manual')
 }
 
 // ✅ EDIT WALLET
 export async function updateWallet(formData: FormData) {
-
-  const supabase =
-    await createClient()
-
-  const id =
-    formData.get('id') as string
-
-  const address =
-    (formData.get('address') as string)?.trim()
-
-  let network =
-    (formData.get('network') as string)?.trim()
-
-  if (!address) {
-
-    throw new Error(
-      'Wallet address is required'
-    )
-
-  }
-
-  // 🔍 VALIDATE
-  const result =
-    detectWallet(address)
-
-  if (!network) {
-
-    network =
-      result.network || 'UNKNOWN'
-
-  }
+  const supabase = await createClient()
 
   const {
-    error
-  } =
-    await supabase
-      .from('wallets')
-      .update({
+    data: { user },
+  } = await supabase.auth.getUser()
 
-        address,
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
 
-        network,
+  const id = formData.get('id') as string
 
-        updated_at:
-          new Date().toISOString(),
+  const address = (formData.get('address') as string)?.trim()
 
-      })
-      .eq('id', id)
+  let network = (formData.get('network') as string)?.trim()
+
+  if (!address) {
+    throw new Error('Wallet address is required')
+  }
+
+  const result = detectWallet(address)
+
+  if (!network) {
+    network = result.network || 'UNKNOWN'
+  }
+
+  const { error } = await supabase
+    .from('wallets')
+    .update({
+      address,
+      network,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .eq('user_id', user.id)
 
   if (error) {
-
-    throw new Error(
-      error.message
-    )
-
+    throw new Error(error.message)
   }
 
   revalidatePath('/wallets')
+  revalidatePath('/wallets/manual')
 }

@@ -5,6 +5,8 @@ import { NextResponse } from 'next/server'
 import { requireAdminApi  } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { processReferral } from "@/lib/referral/processReferral";
+import { sendEmail } from "@/lib/email/sendEmail";
+import { depositApprovedEmail } from "@/lib/email/templates";
 
 export async function POST(
   req: Request,
@@ -109,6 +111,15 @@ export async function POST(
 
     const userId =
       deposit.user_id
+
+      // ================= USER EMAIL =================
+
+const {
+  data: profile,
+} = await supabaseAdmin.auth.admin.getUserById(userId);
+
+const userEmail =
+  profile.user?.email;
 
     // =====================================================
     // IMPORTANT FIX
@@ -383,16 +394,47 @@ if (
 }
 
 // =====================================================
+// SEND APPROVAL EMAIL
+// =====================================================
+
+try {
+
+  if (userEmail) {
+
+    await sendEmail({
+
+      to: userEmail,
+
+      subject: "Deposit Approved",
+
+      html: depositApprovedEmail(
+        amount
+      ),
+
+    });
+
+  }
+
+} catch (emailError) {
+
+  console.error(
+    "DEPOSIT APPROVED EMAIL ERROR:",
+    emailError
+  );
+
+}
+
+// =====================================================
 // SUCCESS RESPONSE
 // =====================================================
 
 console.log(
-  '✅ DEPOSIT APPROVED SUCCESSFULLY'
-)
+  "✅ DEPOSIT APPROVED SUCCESSFULLY"
+);
 
 return NextResponse.json({
-  success: true
-})
+  success: true,
+});
 
 } catch (err: any) {
 

@@ -2,6 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { createActionClient } from "@/lib/supabase/actions";
+import { sendEmail } from "@/lib/email/sendEmail";
+import {
+  welcomeEmail,
+  passwordChangedEmail,
+  passwordResetSuccessEmail,
+  referralSignupBonusEmail,
+} from "@/lib/email/templates";
 
 /* ================================
    ✅ SIGNUP (with gold_balance + referral)
@@ -100,16 +107,68 @@ if (balanceError) {
   console.error("Balance creation error:", balanceError);
 }
 
-  // Credit referrer
- if (referrerId) {
-  const { error } = await supabase.rpc("increment_gold_balance", {
-    user_id: referrerId,
-    amount: 1000,
-  });
+await sendEmail({
+  to: email,
+  subject: "Welcome to Imperial Aurum Mining",
+  html: welcomeEmail(),
+});
 
-  if (error) {
-    console.error("Referrer reward error:", error);
+ // ==============================
+// CREDIT REFERRER + SEND EMAIL
+// ==============================
+
+if (referrerId) {
+
+  // Give referrer 1000 Gold
+  const { error: rewardError } =
+    await supabase.rpc("increment_gold_balance", {
+      user_id: referrerId,
+      amount: 1000,
+    });
+
+  if (rewardError) {
+
+    console.error(
+      "Referrer reward error:",
+      rewardError
+    );
+
+  } else {
+
+    // Get referrer's email
+    const { data: referrerProfile } =
+      await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", referrerId)
+        .single();
+
+    if (referrerProfile?.email) {
+
+      try {
+
+        await sendEmail({
+          to: referrerProfile.email,
+          subject: "You Earned 1000 Gold!",
+          html: referralSignupBonusEmail({
+            newUserEmail: email,
+            
+          }),
+        });
+
+      } catch (emailError) {
+
+        console.error(
+          "Referral registration email error:",
+          emailError
+        );
+
+      }
+
+    }
+
   }
+
 }
 
   return redirect("/dashboard?message=Check your email to confirm your account");
@@ -279,6 +338,12 @@ export async function changePasswordAction(formData: FormData) {
     scope: "others",
   });
 
+  await sendEmail({
+  to: user.email,
+  subject: "Password Changed",
+  html: passwordChangedEmail(),
+});
+
   return redirect(
     `${successPage}?message=${encodeURIComponent(
       "Password changed successfully."
@@ -384,14 +449,28 @@ export async function resetPasswordAction(formData: FormData) {
     );
   }
 
-  // Optional: sign out other sessions
-  await supabase.auth.signOut({
-    scope: "others",
-  });
+  // Get current user before signing out other sessions
+const {
+  data: { user },
+} = await supabase.auth.getUser();
 
-  return redirect(
-    `/login?message=${encodeURIComponent(
-      "Your password has been reset successfully. Please sign in."
-    )}`
-  );
+// Optional: sign out other sessions
+await supabase.auth.signOut({
+  scope: "others",
+});
+
+// Send confirmation email
+if (user?.email) {
+  await sendEmail({
+    to: user.email,
+    subject: "Password Reset Successful",
+    html: passwordResetSuccessEmail(),
+  });
+}
+
+return redirect(
+  `/login?message=${encodeURIComponent(
+    "Your password has been reset successfully. Please sign in."
+  )}`
+);
 }
