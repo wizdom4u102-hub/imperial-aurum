@@ -31,6 +31,28 @@ export default async function SignupPage({
         )}
 
         <form action={signupAction} className="space-y-6">
+          {/* Username */}
+<div>
+  <label className="block text-sm mb-2 text-zinc-400">
+    Username
+  </label>
+
+  <input
+    name="username"
+    type="text"
+    required
+    minLength={3}
+    maxLength={30}
+    pattern="[a-zA-Z0-9_]+"
+    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white"
+    placeholder="john_doe"
+  />
+
+  <p className="text-xs text-zinc-500 mt-2">
+    Only letters, numbers and underscore (_)
+  </p>
+</div>
+
           {/* Email - WAS MISSING! */}
           <div>
             <label className="block text-sm mb-2 text-zinc-400">Email</label>

@@ -11,21 +11,17 @@ interface ClientDashboardProps {
   withdrawals: any[]
   transactions: any[]
   session: any
+  referralLink: string
 }
 
 export default function ClientDashboard({
   profile,
   deposits,
- withdrawals,
+  withdrawals,
   transactions,
   session,
-}: {
-  profile: any
-  deposits: any[]
-  withdrawals: any[]
-  transactions: any[]
-  session: any
-})
+  referralLink,
+}: ClientDashboardProps)
 
 {
   const router = useRouter();
@@ -413,38 +409,39 @@ useEffect(() => {
 
           {/* Referral */}
           <div className="mt-16">
-            <h3 className="text-xl font-medium mb-6">Referral Program</h3>
+  <h3 className="text-xl font-medium mb-6">
+    Referral Program
+  </h3>
 
-            <div className="bg-zinc-900 rounded-3xl p-8">
-              <p className="text-zinc-400 mb-4">
-                Invite friends and earn rewards when they join and deposit!
-              </p>
+  <div className="bg-zinc-900 rounded-3xl p-8">
+    <p className="text-zinc-400 mb-4">
+      Invite friends and earn rewards when they join and deposit!
+    </p>
 
-              <div className="flex flex-col lg:flex-row gap-4">
-                <input
-                  type="text"
-                  value={`https://imperialaurummining.com/signup?ref=${profile?.id || ''}`}
-                  readOnly
-                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 text-sm font-mono text-zinc-300 focus:outline-none"
-                />
+    <div className="flex flex-col lg:flex-row gap-4">
+      <input
+        type="text"
+        value={referralLink}
+        readOnly
+        className="flex-1 bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 text-sm font-mono text-zinc-300 focus:outline-none"
+      />
 
-                <button
-                  onClick={() => {
-                    const link = `https://imperialaurummining.com/signup?ref=${profile?.id || ''}`;
-                    navigator.clipboard.writeText(link);
-                    alert('Referral link copied!');
-                  }}
-                  className="w-full lg:w-auto px-8 py-4 bg-yellow-400 hover:bg-yellow-300 text-black font-semibold rounded-2xl transition-colors whitespace-nowrap"
-                >
-                  Copy Link
-                </button>
-              </div>
+      <button
+        onClick={() => {
+          navigator.clipboard.writeText(referralLink);
+          alert("Referral link copied!");
+        }}
+        className="w-full lg:w-auto px-8 py-4 bg-yellow-400 hover:bg-yellow-300 text-black font-semibold rounded-2xl transition-colors whitespace-nowrap"
+      >
+        Copy Link
+      </button>
+    </div>
 
-              <p className="text-xs text-zinc-500 mt-3">
-                Your unique referral link • Share it to earn bonuses
-              </p>
-            </div>
-          </div>
+    <p className="text-xs text-zinc-500 mt-3">
+      Your unique referral link • Share it to earn 1000 Gold
+    </p>
+  </div>
+</div>
 
         </div>
       </main>

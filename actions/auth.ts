@@ -16,9 +16,22 @@ import {
 export async function signupAction(formData: FormData) {
   const supabase = await createActionClient();
 
-  const email = String(formData.get("email") || "").trim().toLowerCase();
-  const password = String(formData.get("password") || "").trim();
-  const referralCode = String(formData.get("referral_code") || "").trim();
+  const username = String(formData.get("username") || "")
+  .trim()
+  .toLowerCase();
+
+const email = String(formData.get("email") || "")
+  .trim()
+  .toLowerCase();
+
+const password = String(formData.get("password") || "")
+  .trim();
+
+const referralUsername = String(
+  formData.get("referral_code") || ""
+)
+  .trim()
+  .toLowerCase();
 
   // Validation
   if (!email) {
@@ -27,15 +40,22 @@ export async function signupAction(formData: FormData) {
   if (!password || password.length < 6) {
     return redirect(`/signup?error=${encodeURIComponent("Password must be at least 6 characters")}`);
   }
+  if (!/^[a-z0-9_]{3,30}$/.test(username)) {
+  return redirect(
+    `/signup?error=${encodeURIComponent(
+      "Username must be 3-30 characters and contain only letters, numbers and underscore."
+    )}`
+  );
+}
 
   let referrerId: string | null = null;
 
   // Resolve referral code
-  if (referralCode) {
+  if (referralUsername) {
     const { data: refUser, error: refError } = await supabase
       .from("profiles")
       .select("id")
-      .eq("referral_code", referralCode)
+      .eq("username", referralUsername)
       .single();
 
     if (refError && refError.code !== "PGRST116") {
@@ -46,6 +66,27 @@ export async function signupAction(formData: FormData) {
       referrerId = refUser.id;
     }
   }
+
+  const {
+  data: existingUsername,
+  error: usernameError,
+} = await supabase
+  .from("profiles")
+  .select("id")
+  .eq("username", username)
+  .maybeSingle();
+
+if (usernameError) {
+  console.error("Username lookup error:", usernameError);
+}
+
+if (existingUsername) {
+  return redirect(
+    `/signup?error=${encodeURIComponent(
+      "Username already exists."
+    )}`
+  );
+}
 
   // Create account
   const { data, error: signupError } = await supabase.auth.signUp({
@@ -72,13 +113,14 @@ const { error: profileError } = await supabase
   .from("profiles")
   .upsert(
     {
-      id: userId,
-      email,
-      referrer_id: referrerId,
-      referred_by: referrerId,
-      gold_balance: 1000,
-      updated_at: new Date().toISOString(),
-    },
+  id: userId,
+  username,
+  email,
+  referrer_id: referrerId,
+  referred_by: referrerId,
+  gold_balance: 1000,
+  updated_at: new Date().toISOString(),
+},
     { onConflict: "id" }
   );
 

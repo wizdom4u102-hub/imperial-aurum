@@ -13,6 +13,17 @@ export default async function ReferralsPage() {
     redirect('/login')
   }
 
+// ✅ User is confirmed to be logged in
+const { data: profile } = await supabase
+  .from("profiles")
+  .select("username")
+  .eq("id", user.id)
+  .single();
+
+const referralLink = profile?.username
+  ? `${process.env.NEXT_PUBLIC_APP_URL}/signup?ref=${profile.username}`
+  : "";
+
   const {
     data: earnings,
     error,
@@ -62,6 +73,35 @@ export default async function ReferralsPage() {
             ← Dashboard
           </Link>
         </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8">
+  <h2 className="text-xl font-bold text-yellow-400 mb-4">
+    Your Referral Link
+  </h2>
+
+  <div className="bg-zinc-800 rounded-xl p-4 break-all text-sm">
+    {referralLink}
+  </div>
+
+  <div className="mt-4 flex flex-col sm:flex-row gap-3">
+    <button
+      onClick={() => navigator.clipboard.writeText(referralLink)}
+      className="bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-xl font-bold"
+    >
+      Copy Referral Link
+    </button>
+
+    <a
+      href={`https://wa.me/?text=${encodeURIComponent(
+        `Join Imperial Aurum Mining using my referral link:\n\n${referralLink}`
+      )}`}
+      target="_blank"
+      className="bg-green-600 hover:bg-green-500 px-5 py-3 rounded-xl text-center font-bold"
+    >
+      Share on WhatsApp
+    </a>
+  </div>
+</div>
 
         {/* SUMMARY */}
 
