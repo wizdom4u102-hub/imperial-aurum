@@ -81,6 +81,11 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single()
 
+    const referralLink =
+  profile?.username
+    ? `${process.env.NEXT_PUBLIC_APP_URL}/signup?ref=${profile.username}`
+    : ''
+
   console.log(
     'PROFILE:',
     profile
@@ -318,6 +323,7 @@ console.log(
         withdrawals={withdrawals ?? []}
         transactions={transactions ?? []}
         session={session ?? null}
+        referralLink={referralLink}
       />
     )
   } 
