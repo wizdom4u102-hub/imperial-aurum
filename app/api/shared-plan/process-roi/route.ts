@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import {
+  runTradingBotScheduler,
+} from "@/lib/trading-bot/scheduler";
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -567,6 +570,8 @@ export async function GET(request: NextRequest) {
         )
       }
     }
+
+    await runTradingBotScheduler();
 
     // =====================================================
     // SUCCESS
