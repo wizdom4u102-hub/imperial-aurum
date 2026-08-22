@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import AdminPushNotifications from "@/components/admin/admin-push-notifications";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
@@ -11,6 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     plans: false,
     payments: false,
     history: false,
+    tradingBot: false,
     testimonials: false,
     team: false,
     documents: false,
@@ -20,6 +22,45 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   })
 
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [unreadLiveChatCount, setUnreadLiveChatCount] = useState(0)
+
+  useEffect(() => {
+  async function loadUnreadLiveChatCount() {
+    try {
+      const response = await fetch("/api/admin/live-chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "get-unread-count",
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        setUnreadLiveChatCount(result.data ?? 0)
+      }
+    } catch (error) {
+      console.error(
+        "Failed to load unread live chat count:",
+        error,
+      )
+    }
+  }
+
+  void loadUnreadLiveChatCount()
+
+  const interval = window.setInterval(
+    loadUnreadLiveChatCount,
+    5000,
+  )
+
+  return () => {
+    window.clearInterval(interval)
+  }
+}, [])
 
   const toggleMenu = (menu: string) => {
     setOpenMenus(prev => ({ ...prev, [menu]: !prev[menu] }))
@@ -102,18 +143,55 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
 
             <div>
-              <button onClick={() => toggleMenu('plans')} className="flex items-center justify-between w-full px-5 py-3.5 hover:bg-zinc-800 rounded-2xl text-white font-medium transition-all">
-                ⭐ Plans & Investment
-                <span className="text-xs bg-zinc-800 px-2.5 py-0.5 rounded-lg">{openMenus.plans ? '−' : '+'}</span>
-              </button>
-              {openMenus.plans && (
-                <div className="ml-6 mt-1 space-y-0.5 pl-2 border-l border-zinc-800">
-                  <Link href="/admin/plans?filter=paid" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">💎 Paid Plan</Link>
-                  <Link href="/admin/plans?filter=free" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">🆓 Free Plan</Link>
-                  <Link href="/admin/plans?filter=share" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">🤝 Share Plan</Link>
-                </div>
-              )}
-            </div>
+  <button
+    onClick={() => toggleMenu('plans')}
+    className="flex w-full items-center justify-between rounded-2xl px-5 py-3.5 font-medium text-white transition-all hover:bg-zinc-800"
+  >
+    ⭐ Plans & Investment
+    <span className="rounded-lg bg-zinc-800 px-2.5 py-0.5 text-xs">
+      {openMenus.plans ? '−' : '+'}
+    </span>
+  </button>
+
+  {openMenus.plans && (
+    <div className="ml-6 mt-1 space-y-0.5 border-l border-zinc-800 pl-2">
+
+      <Link
+        href="/admin/mining-plans/paid"
+        onClick={closeMobileMenu}
+        className="flex items-center gap-3 rounded-xl px-5 py-3 text-zinc-400 hover:bg-zinc-800/70 hover:text-white"
+      >
+        💎 Paid Mining Plan
+      </Link>
+
+      <Link
+        href="/admin/mining-plans/free"
+        onClick={closeMobileMenu}
+        className="flex items-center gap-3 rounded-xl px-5 py-3 text-zinc-400 hover:bg-zinc-800/70 hover:text-white"
+      >
+        🆓 Free Mining Plan
+      </Link>
+
+      <Link
+        href="/admin/share-plans"
+        onClick={closeMobileMenu}
+        className="flex items-center gap-3 rounded-xl px-5 py-3 text-zinc-400 hover:bg-zinc-800/70 hover:text-white"
+      >
+        🤝 Share Plan
+      </Link>
+
+    </div>
+  )}
+</div>
+
+                        {/* Mining Power */}
+            <Link
+              href="/admin/mining-plans"
+              onClick={closeMobileMenu}
+              className="flex items-center gap-3 px-5 py-3.5 hover:bg-zinc-800 rounded-2xl text-white font-medium transition-all"
+            >
+              ⛏️ Mining Power
+            </Link>
 
             <div>
               <button onClick={() => toggleMenu('payments')} className="flex items-center justify-between w-full px-5 py-3.5 hover:bg-zinc-800 rounded-2xl text-white font-medium transition-all">
@@ -138,6 +216,107 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   </h3>
 </Link>
 
+{/* Trading Bot Management */}
+<div>
+
+  <button
+    onClick={() => toggleMenu('tradingBot')}
+    className="flex items-center justify-between w-full px-5 py-3.5 hover:bg-zinc-800 rounded-2xl text-white font-medium transition-all"
+  >
+
+    🤖 Trading Bot
+
+    <span className="text-xs bg-zinc-800 px-2.5 py-0.5 rounded-lg">
+      {openMenus.tradingBot ? '−' : '+'}
+    </span>
+
+  </button>
+
+
+  {openMenus.tradingBot && (
+
+    <div className="ml-6 mt-1 space-y-0.5 pl-2 border-l border-zinc-800">
+
+
+     <Link
+  href="/admin/trading-bot"
+  onClick={closeMobileMenu}
+  className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+>
+  📊 Trading Bot Dashboard
+</Link>
+
+<Link
+  href="/admin/trading-bot/deposits"
+  onClick={closeMobileMenu}
+  className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+>
+  💰 Bot Deposits
+</Link>
+
+<Link
+  href="/admin/trading-bot/users"
+  onClick={closeMobileMenu}
+  className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+>
+  👥 User Trading Bots
+</Link>
+
+<Link
+  href="/admin/trading-bot/history"
+  onClick={closeMobileMenu}
+  className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+>
+  📜 Bot History
+</Link>
+
+<Link
+  href="/admin/trading-bot/adjustment"
+  onClick={closeMobileMenu}
+  className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+>
+  💳 Credit / Debit Bot
+</Link>
+
+<Link
+  href="/admin/trading-bot/plans"
+  onClick={closeMobileMenu}
+  className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+>
+  🛒Manage Plan
+</Link>
+
+<Link
+  href="/admin/trading-bot/trades"
+  onClick={closeMobileMenu}
+  className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+>
+  📈 Bot Trades
+</Link>
+
+<Link
+  href="/admin/trading-bot/statistics"
+  onClick={closeMobileMenu}
+  className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+>
+  📊 Bot Statistics
+</Link>
+
+<Link
+  href="/admin/trading-bot/logs"
+  onClick={closeMobileMenu}
+  className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+>
+  📜 Bot Logs
+</Link>
+
+
+    </div>
+
+  )}
+
+</div>
+
 <Link
   href="/admin/change-password"
   className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
@@ -159,11 +338,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </button>
                 {openMenus.testimonials && (
                   <div className="ml-6 mt-1 space-y-0.5 pl-2 border-l border-zinc-800">
-                    <Link href="/admin/testimonials/manual" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">📝 Manual Testimonials</Link>
-                    <Link href="/admin/testimonials/add" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">➕ Add Manual Testimonial</Link>
-                    <Link href="/admin/testimonials/pending" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">⏳ Pending User Testimonials</Link>
-                    <Link href="/admin/testimonials/approved" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">✅ Approved User Testimonials</Link>
-                  </div>
+
+  <Link
+    href="/admin/testimonials"
+    onClick={closeMobileMenu}
+    className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+  >
+    📋 All Testimonials
+  </Link>
+
+  <Link
+    href="/admin/testimonials/manual"
+    onClick={closeMobileMenu}
+    className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+  >
+    📝 Manual Testimonials
+  </Link>
+
+  <Link
+    href="/admin/testimonials/new"
+    onClick={closeMobileMenu}
+    className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+  >
+    ➕ Add Manual Testimonial
+  </Link>
+
+  <Link
+    href="/admin/testimonials/pending"
+    onClick={closeMobileMenu}
+    className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+  >
+    ⏳ Pending User Testimonials
+  </Link>
+
+  <Link
+    href="/admin/testimonials/approved"
+    onClick={closeMobileMenu}
+    className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+  >
+    ✅ Approved User Testimonials
+  </Link>
+
+</div>
                 )}
               </div>
 
@@ -175,9 +391,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </button>
                 {openMenus.team && (
                   <div className="ml-6 mt-1 space-y-0.5 pl-2 border-l border-zinc-800">
-                    <Link href="/admin/team/all" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">👤 All Team Members</Link>
-                    <Link href="/admin/team/add" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">➕ Add Member</Link>
-                  </div>
+  <Link
+    href="/admin/team-members"
+    onClick={closeMobileMenu}
+    className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+  >
+    👤 All Team Members
+  </Link>
+
+  <Link
+    href="/admin/team-members/new"
+    onClick={closeMobileMenu}
+    className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+  >
+    ➕ Add Member
+  </Link>
+</div>
                 )}
               </div>
 
@@ -203,8 +432,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </button>
                 {openMenus.faqs && (
                   <div className="ml-6 mt-1 space-y-0.5 pl-2 border-l border-zinc-800">
-                    <Link href="/admin/faqs/all" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">📋 All FAQs</Link>
-                    <Link href="/admin/faqs/add" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">➕ Add FAQ</Link>
+                    <Link href="/admin/faqs/" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">📋 All FAQs</Link>
+                    <Link href="/admin/faqs/new" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">➕ Add FAQ</Link>
                   </div>
                 )}
               </div>
@@ -217,11 +446,41 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </button>
                 {openMenus.blog && (
                   <div className="ml-6 mt-1 space-y-0.5 pl-2 border-l border-zinc-800">
-                    <Link href="/admin/blog/all" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">📋 All Blog Posts</Link>
-                    <Link href="/admin/blog/new" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white">✍️ Post New Blog</Link>
-                  </div>
+  <Link
+    href="/admin/blog"
+    onClick={closeMobileMenu}
+    className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+  >
+    📋 All Blog Posts
+  </Link>
+
+  <Link
+    href="/admin/blog/new"
+    onClick={closeMobileMenu}
+    className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+  >
+    ✍️ Post New Blog
+  </Link>
+</div>
                 )}
               </div>
+
+              {/* New Live Chat */}
+<div>
+  <Link
+    href="/admin/live-chat"
+    onClick={closeMobileMenu}
+    className="flex w-full items-center justify-between gap-3 rounded-2xl px-5 py-3.5 font-medium text-white transition-all hover:bg-zinc-800"
+  >
+    <span>💬 New Live Chat</span>
+
+    {unreadLiveChatCount > 0 && (
+      <span className="ml-auto shrink-0 rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-bold text-white">
+        {unreadLiveChatCount}
+      </span>
+    )}
+  </Link>
+</div>
 
               {/* Live Chat */}
               <div>
@@ -254,6 +513,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main Content */}
       <div className="flex-1 overflow-auto lg:ml-0">
         <div className="p-6 lg:p-8 pt-16 lg:pt-8">
+           <div className="mb-6">
+            <AdminPushNotifications />
+            </div>
+
           {children}
         </div>
       </div>

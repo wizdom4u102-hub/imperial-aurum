@@ -13,14 +13,15 @@ export default async function SharedPlansHistoryPage() {
     redirect("/login");
   }
 
-  const { data, error } = await supabase
+    const { data, error } = await supabase
     .from("transactions")
     .select("*")
     .eq("user_id", user.id)
     .in("type", [
-      "roi",
-      "shared_plan_completed",
+      "shared_plan",
       "shared_plan_purchase",
+      "shared_plan_completed",
+      "roi",
     ])
     .order("created_at", {
       ascending: false,
@@ -30,12 +31,18 @@ export default async function SharedPlansHistoryPage() {
     console.error(error);
   }
 
-  const getType = (type: string) => {
+    const getType = (type: string) => {
     switch (type) {
-      case "roi":
+      case "shared_plan":
         return {
-          text: "ROI Profit",
-          color: "text-cyan-400",
+          text: "Share Plan Investment",
+          color: "text-yellow-400",
+        };
+
+      case "shared_plan_purchase":
+        return {
+          text: "Plan Purchased",
+          color: "text-yellow-400",
         };
 
       case "shared_plan_completed":
@@ -44,10 +51,10 @@ export default async function SharedPlansHistoryPage() {
           color: "text-green-400",
         };
 
-      case "shared_plan_purchase":
+      case "roi":
         return {
-          text: "Plan Purchased",
-          color: "text-yellow-400",
+          text: "ROI Profit",
+          color: "text-cyan-400",
         };
 
       default:
@@ -64,7 +71,7 @@ export default async function SharedPlansHistoryPage() {
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-bold sm:text-3xl lg:text-4xl">
-            Shared Plan ROI History
+            Shared Plan Activity History
           </h1>
 
           <Link
@@ -77,7 +84,7 @@ export default async function SharedPlansHistoryPage() {
 
         {!data || data.length === 0 ? (
           <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8 text-center text-zinc-500">
-            No ROI history yet.
+            No Shared Plan activity yet.
           </div>
         ) : (
           <>

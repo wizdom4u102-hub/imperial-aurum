@@ -222,41 +222,148 @@ if (referrerId) {
 export async function loginAction(formData: FormData) {
   const supabase = await createActionClient();
 
-  const email = String(formData.get("email") || "").trim();
-  const password = String(formData.get("password") || "").trim();
+  const email = String(
+    formData.get("email") || ""
+  )
+    .trim()
+    .toLowerCase();
 
-  console.log("LOGIN ATTEMPT:", email);
+  const password = String(
+    formData.get("password") || ""
+  ).trim();
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const loginType = String(
+    formData.get("login_type") || "user"
+  );
+
+  const isAdminLogin =
+    loginType === "admin";
+
+  const loginPage =
+    isAdminLogin
+      ? "/admin/login"
+      : "/login";
+
+  console.log(
+    "LOGIN ATTEMPT:",
     email,
-    password,
-  });
+    "TYPE:",
+    loginType
+  );
 
-  console.log('SET-COOKIE READY:', data?.session?.refresh_token);
-  console.log('LOGIN SESSION:', data?.session);
-  console.log('LOGIN USER:', data?.user?.id);
+  // ==========================================
+  // AUTHENTICATE
+  // ==========================================
+
+  const {
+    data,
+    error,
+  } =
+    await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
   if (error) {
-    console.error("LOGIN ERROR:", error.message);
-    return redirect(`/login/admin?error=${encodeURIComponent(error.message)}`);
+    console.error(
+      "LOGIN ERROR:",
+      error.message
+    );
+
+    return redirect(
+      `${loginPage}?error=${encodeURIComponent(
+        error.message
+      )}`
+    );
   }
 
   if (!data?.user) {
-    return redirect("/login/admin?error=No user");
+    return redirect(
+      `${loginPage}?error=${encodeURIComponent(
+        "Unable to identify your account."
+      )}`
+    );
   }
 
-  console.log("LOGGED USER:", data.user.id);
+  console.log(
+    "LOGGED USER:",
+    data.user.id
+  );
 
-  const { data: profile } = await supabase
+  // ==========================================
+  // GET PROFILE
+  // ==========================================
+
+  const {
+    data: profile,
+    error: profileError,
+  } = await supabase
     .from("profiles")
     .select("role,is_admin")
     .eq("id", data.user.id)
     .maybeSingle();
 
-  console.log("PROFILE:", profile);
+  if (profileError) {
+    console.error(
+      "LOGIN PROFILE ERROR:",
+      profileError
+    );
 
-  if (profile?.role === "admin" || profile?.is_admin === true) {
+    await supabase.auth.signOut();
+
+    return redirect(
+      `${loginPage}?error=${encodeURIComponent(
+        "Unable to verify your account type. Please try again."
+      )}`
+    );
+  }
+
+  const isAdmin =
+    profile?.role === "admin" ||
+    profile?.is_admin === true;
+
+  console.log(
+    "ACCOUNT TYPE:",
+    isAdmin
+      ? "ADMIN"
+      : "USER"
+  );
+
+  // ==========================================
+  // ADMIN LOGIN PAGE
+  // ==========================================
+
+  if (isAdminLogin) {
+
+    if (!isAdmin) {
+
+      await supabase.auth.signOut();
+
+      return redirect(
+        `/admin/login?error=${encodeURIComponent(
+          "This is the Admin Login page. Your account does not have administrator access. Please use the User Login page."
+        )}`
+      );
+
+    }
+
     return redirect("/admin");
+  }
+
+  // ==========================================
+  // NORMAL USER LOGIN PAGE
+  // ==========================================
+
+  if (isAdmin) {
+
+    await supabase.auth.signOut();
+
+    return redirect(
+      `/login?error=${encodeURIComponent(
+        "This is the User Login page. Admin accounts cannot log in here. Please use the Admin Login page."
+      )}`
+    );
+
   }
 
   return redirect("/dashboard");

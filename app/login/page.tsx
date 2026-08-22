@@ -14,6 +14,11 @@ export default function LoginPage() {
         </div>
 
         <form action={loginAction} className="space-y-6">
+  <input
+    type="hidden"
+    name="login_type"
+    value="user"
+  />
           <div>
             <label className="block text-sm mb-2 text-zinc-400">Email</label>
             <input

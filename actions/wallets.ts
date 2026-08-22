@@ -287,7 +287,6 @@ export async function updateWallet(formData: FormData) {
     .update({
       address,
       network,
-      updated_at: new Date().toISOString(),
     })
     .eq('id', id)
     .eq('user_id', user.id)

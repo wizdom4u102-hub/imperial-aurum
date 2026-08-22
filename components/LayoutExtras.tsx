@@ -22,37 +22,6 @@ export default function LayoutExtras() {
         <LanguageSelector />
       </div>
 
-      {/* Smartsupp */}
-      <Script
-        id="live-chat"
-        strategy="afterInteractive"
-      >
-        {`
-          window._smartsupp = window._smartsupp || {};
-          window._smartsupp.key = "6df9a8ec6a5b3911664f283a72f6efb96ea4390d";
-
-          window.smartsupp = window.smartsupp || function () {
-            (window.smartsupp._ = window.smartsupp._ || []).push(arguments);
-          };
-
-          const s = document.createElement("script");
-          s.async = true;
-          s.src = "https://www.smartsuppchat.com/loader.js";
-          document.head.appendChild(s);
-        `}
-      </Script>
-
-      <noscript>
-        Powered by{" "}
-        <a
-          href="https://www.smartsupp.com"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Smartsupp
-        </a>
-      </noscript>
-
       <CookieBanner />
     </>
   );

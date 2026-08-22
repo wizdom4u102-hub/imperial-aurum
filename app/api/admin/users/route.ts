@@ -21,6 +21,7 @@ export async function GET() {
       .from('profiles')
       .select(`
         id,
+        username,
         email,
         status,
         created_at,

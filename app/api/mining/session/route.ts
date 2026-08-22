@@ -145,10 +145,16 @@ const lockedSession =
     // CALCULATE REWARD
     // =====================
 
-    const started =
-      new Date(
-        lockedSession.started_at
-      ).getTime()
+   if (!lockedSession.started_at) {
+  throw new Error(
+    "Mining session start time is missing."
+  );
+}
+
+const started =
+  new Date(
+    lockedSession.started_at
+  ).getTime();
 
     const seconds =
       Math.max(

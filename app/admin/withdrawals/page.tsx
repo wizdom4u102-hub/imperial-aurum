@@ -441,11 +441,15 @@ export default function ManageWithdrawals() {
                         ).toFixed(2)}
                       </p>
 
-                      <p className="text-sm text-zinc-400 mt-2 break-all">
-                        User ID:
-                        {' '}
-                        {w.user_id}
-                      </p>
+                     <div className="mt-2">
+  <p className="text-sm text-white font-medium">
+    {w.username || 'No username'}
+  </p>
+
+  <p className="text-sm text-zinc-400 break-all">
+    {w.email || 'No email'}
+  </p>
+</div>
 
                       {w.wallet_address && (
 

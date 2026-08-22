@@ -26,6 +26,19 @@ export default async function Page() {
     .eq('user_id', user.id)
 
   return (
-    <WithdrawClient methods={methods || []} />
-  )
+  <WithdrawClient
+    methods={(methods ?? [])
+      .filter(
+        (method) =>
+          typeof method.address === "string" &&
+          method.address.trim().length > 0
+      )
+      .map((method) => ({
+        ...method,
+        address: method.address as string,
+        network:
+          method.network ?? undefined,
+      }))}
+  />
+)
 }

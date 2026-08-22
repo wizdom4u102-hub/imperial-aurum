@@ -1,132 +1,236 @@
+"use client";
+
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+type Testimonial = {
+  id: string;
+  name: string;
+  country: string | null;
+  amount: string | null;
+  image: string | null;
+  text: string;
+  display_order: number;
+};
 
 export default function Testimonials() {
-  const testimonials = [
-    {
-      name: "Michael Anderson",
-      country: "🇺🇸 United States",
-      amount: "$48,500",
-      image: "/images/testimonials/michael.jpg",
-      text: "Imperial Aurum has completely changed my investment journey. Daily rewards are consistent and withdrawals have always been processed smoothly.",
-    },
-    {
-      name: "Sophia Williams",
-      country: "🇬🇧 United Kingdom",
-      amount: "$31,200",
-      image: "/images/testimonials/sophia.jpg",
-      text: "The dashboard is extremely easy to use. I especially love the referral program which has become another major source of income.",
-    },
-    {
-      name: "David Müller",
-      country: "🇩🇪 Germany",
-      amount: "$76,900",
-      image: "/images/testimonials/david.jpg",
-      text: "Professional platform, transparent transactions, and excellent customer support. One of the best cloud mining experiences I've had.",
-    },
-  ];
+  const supabase = createClient();
+
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadTestimonials = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("testimonials")
+          .select(
+            "id, name, country, amount, image, text, display_order"
+          )
+          .eq("status", "approved")
+          .order("display_order", {
+            ascending: true,
+          })
+          .order("created_at", {
+            ascending: true,
+          });
+
+        if (error) {
+          console.error(
+            "TESTIMONIALS LOAD ERROR:",
+            error
+          );
+          return;
+        }
+
+        if (mounted) {
+          setTestimonials(data ?? []);
+        }
+      } catch (error) {
+        console.error(
+          "TESTIMONIALS LOAD ERROR:",
+          error
+        );
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadTestimonials();
+
+    return () => {
+      mounted = false;
+    };
+  }, [supabase]);
 
   return (
-    <section className="py-24 bg-zinc-950">
+    <section className="bg-zinc-950 py-24">
+      <div className="mx-auto max-w-7xl px-6">
 
-      <div className="max-w-7xl mx-auto px-6">
+        {/* HEADER */}
 
-        <div className="text-center mb-16">
+        <div className="mb-16 text-center">
 
-          <span className="uppercase tracking-[6px] text-yellow-400 text-sm">
+          <span className="text-sm uppercase tracking-[6px] text-yellow-400">
             Testimonials
           </span>
 
-          <h2 className="text-5xl font-bold mt-4">
+          <h2 className="mt-4 text-5xl font-bold">
             Trusted By Investors Worldwide
           </h2>
 
-          <p className="text-zinc-400 mt-6 max-w-2xl mx-auto">
-            Thousands of members continue to grow their portfolios through
-            Imperial Aurum's cloud mining platform.
+          <p className="mx-auto mt-6 max-w-2xl text-zinc-400">
+            Thousands of members continue to grow their portfolios
+            through Imperial Aurum&apos;s cloud mining platform.
           </p>
 
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        {/* LOADING */}
 
-          {testimonials.map((item, index) => (
+        {loading && (
+          <div className="grid gap-8 md:grid-cols-3">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="h-[430px] animate-pulse rounded-3xl border border-yellow-500/10 bg-white/5"
+              />
+            ))}
+          </div>
+        )}
 
-            <div
-              key={index}
-              className="
-              group
-              relative
-              bg-white/5
-              backdrop-blur-xl
-              border
-              border-yellow-500/20
-              rounded-3xl
-              p-8
-              transition-all
-              duration-500
-              hover:scale-105
-              hover:-translate-y-3
-              hover:border-yellow-400
-              hover:shadow-[0_0_40px_rgba(234,179,8,0.35)]
-              "
-            >
+        {/* TESTIMONIALS */}
 
-              {/* Quote */}
+        {!loading && testimonials.length > 0 && (
+          <div className="grid gap-8 md:grid-cols-3">
 
-              <div className="absolute top-6 right-6 text-5xl text-yellow-400 opacity-20 group-hover:opacity-60 transition">
-                ❝
-              </div>
+            {testimonials.map((item) => {
+              const isSelected =
+                selectedId === item.id;
 
-              {/* Avatar */}
+              return (
+                <div
+                  key={item.id}
+                  onClick={() =>
+                    setSelectedId(
+                      isSelected ? null : item.id
+                    )
+                  }
+                  className={`
+                    group
+                    relative
+                    cursor-pointer
+                    rounded-3xl
+                    border
+                    bg-white/5
+                    p-8
+                    backdrop-blur-xl
+                    transition-all
+                    duration-500
+                    ${
+                      isSelected
+                        ? "z-20 scale-105 -translate-y-3 border-yellow-400 shadow-[0_0_50px_rgba(234,179,8,0.45)]"
+                        : "border-yellow-500/20 hover:scale-105 hover:-translate-y-3 hover:border-yellow-400 hover:shadow-[0_0_40px_rgba(234,179,8,0.35)]"
+                    }
+                  `}
+                >
 
-              <div className="flex justify-center mb-6">
+                  {/* Quote */}
 
-                <Image
-                  src={item.image}
-                  alt={item.name}
-                  width={90}
-                  height={90}
-                  className="rounded-full border-4 border-yellow-400 object-cover"
-                />
+                  <div
+                    className={`
+                      absolute right-6 top-6 text-5xl
+                      text-yellow-400 transition
+                      ${
+                        isSelected
+                          ? "opacity-70"
+                          : "opacity-20 group-hover:opacity-60"
+                      }
+                    `}
+                  >
+                    ❝
+                  </div>
 
-              </div>
+                  {/* Avatar */}
 
-              {/* Testimony */}
+                  <div className="mb-6 flex justify-center">
 
-              <p className="text-zinc-300 leading-8 italic text-center mb-8">
-                "{item.text}"
-              </p>
+                    {item.image ? (
+                      <div className="relative h-[90px] w-[90px] overflow-hidden rounded-full border-4 border-yellow-400">
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          sizes="90px"
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex h-[90px] w-[90px] items-center justify-center rounded-full border-4 border-yellow-400 bg-zinc-900 text-3xl">
+                        👤
+                      </div>
+                    )}
 
-              {/* Footer */}
+                  </div>
 
-              <div className="border-t border-zinc-800 pt-6 text-center">
+                  {/* Testimony */}
 
-                <h3 className="text-xl font-bold">
-                  {item.name}
-                </h3>
+                  <p className="mb-8 text-center italic leading-8 text-zinc-300">
+                    &quot;{item.text}&quot;
+                  </p>
 
-                <p className="text-zinc-500 mt-1">
-                  {item.country}
-                </p>
+                  {/* Footer */}
 
-                <div className="mt-5 text-yellow-400 uppercase tracking-widest text-sm">
-                  Total Earnings
+                  <div className="border-t border-zinc-800 pt-6 text-center">
+
+                    <h3 className="text-xl font-bold">
+                      {item.name}
+                    </h3>
+
+                    {item.country && (
+                      <p className="mt-1 text-zinc-500">
+                        {item.country}
+                      </p>
+                    )}
+
+                    {item.amount && (
+                      <>
+                        <div className="mt-5 text-sm uppercase tracking-widest text-yellow-400">
+                          Total Earnings
+                        </div>
+
+                        <div className="mt-2 text-4xl font-bold text-white">
+                          {item.amount}
+                        </div>
+                      </>
+                    )}
+
+                  </div>
+
                 </div>
+              );
+            })}
 
-                <div className="text-4xl font-bold mt-2 text-white">
-                  {item.amount}
-                </div>
+          </div>
+        )}
 
-              </div>
+        {/* NO TESTIMONIALS */}
 
-            </div>
-
-          ))}
-
-        </div>
+        {!loading && testimonials.length === 0 && (
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-10 text-center">
+            <p className="text-zinc-500">
+              No testimonials are available at the moment.
+            </p>
+          </div>
+        )}
 
       </div>
-
     </section>
   );
 }

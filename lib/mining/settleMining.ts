@@ -27,11 +27,17 @@ export async function settleMining(
   const now =
     Date.now()
 
-  const endTime =
-    new Date(
-      session.ends_at
-    ).getTime()
+  if (!session.ends_at) {
+  throw new Error(
+    "Mining session end time is missing."
+  );
+}
 
+const endTime =
+  new Date(
+    session.ends_at
+  ).getTime();
+  
   if (
     now < endTime
   ) {

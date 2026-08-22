@@ -28,10 +28,10 @@ export default async function AdminMessagesPage({
     .single()
 
   const { data: messages } = await supabase
-    .from('admin_messages')
-    .select('*')
-    .eq('user_id', Id)
-    .order('created_at', { ascending: false })
+  .from('user_notifications')
+  .select('*')
+  .eq('user_id', Id)
+  .order('created_at', { ascending: false })
 
   return (
     <div className="min-h-screen bg-black text-white p-8">
@@ -79,7 +79,7 @@ export default async function AdminMessagesPage({
         </form>
 
         <div className="space-y-4">
-          {messages?.map((msg: any) => (
+          {messages?.map((msg) => (
             <div
               key={msg.id}
               className="bg-zinc-900 rounded-2xl p-6"
@@ -93,7 +93,9 @@ export default async function AdminMessagesPage({
               </p>
 
               <p className="mt-3 text-xs text-zinc-500">
-                {new Date(msg.created_at).toLocaleString()}
+                {msg.created_at
+  ? new Date(msg.created_at).toLocaleString()
+  : "Date unavailable"}
               </p>
             </div>
           ))}

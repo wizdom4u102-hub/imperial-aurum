@@ -4,10 +4,14 @@ import CookieBanner from "@/components/CookieBanner";
 import Script from "next/script";
 import LayoutExtras from "@/components/LayoutExtras";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import VisitorTrackingProvider from "@/components/visitor-tracking-provider";
 
 export const metadata: Metadata = {
   title: "Imperial Aurum",
-  description: "Premium investment and wealth management platform.",
+  description:
+    "Premium investment and wealth management platform.",
 };
 
 export const viewport = {
@@ -21,16 +25,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col overflow-x-hidden bg-zinc-950 text-white">
-
+    <html
+      lang="en"
+      className={cn(
+        "h-full antialiased",
+        "font-sans"
+      )}
+    >
+      <body className="min-h-full">
+        <VisitorTrackingProvider />
         <AppNavbar />
 
         <LayoutExtras />
 
         <main className="flex-1 pt-20 w-full">
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {children}
+            <TooltipProvider>
+              {children}
+            </TooltipProvider>
           </div>
         </main>
 
@@ -64,7 +76,6 @@ export default function RootLayout({
         </Script>
 
         <CookieBanner />
-
       </body>
     </html>
   );

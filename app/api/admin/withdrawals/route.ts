@@ -91,18 +91,104 @@ export async function GET() {
       withdrawals
     )
 
+    const userIds = [
+  ...new Set(
+    (withdrawals ?? [])
+      .map(
+        (withdrawal) =>
+          withdrawal.user_id
+      )
+      .filter(
+        (
+          userId
+        ): userId is string =>
+          typeof userId === 'string'
+      )
+  ),
+]
+
+const {
+  data: profiles,
+  error: profilesError,
+} =
+  userIds.length > 0
+    ? await supabaseAdmin
+        .from('profiles')
+        .select(
+          'id, username, email'
+        )
+        .in(
+          'id',
+          userIds
+        )
+    : {
+        data: [],
+        error: null,
+      }
+
+if (profilesError) {
+
+  console.error(
+    'WITHDRAWAL PROFILES FETCH ERROR:',
+    profilesError
+  )
+
+  return NextResponse.json(
+    {
+      error:
+        profilesError.message
+    },
+    {
+      status: 500
+    }
+  )
+
+}
+
+const profileMap =
+  new Map(
+    (profiles ?? []).map(
+      (profile) => [
+        profile.id,
+        profile,
+      ]
+    )
+  )
+
+const withdrawalsWithUsers =
+  (withdrawals ?? []).map(
+    (withdrawal) => {
+
+      const profile =
+        profileMap.get(
+          withdrawal.user_id ?? ''
+        )
+
+      return {
+        ...withdrawal,
+
+        username:
+          profile?.username ?? null,
+
+        email:
+          profile?.email ?? null,
+      }
+
+    }
+  )
+
     // =====================================================
     // SUCCESS
     // =====================================================
 
-    return NextResponse.json({
+   return NextResponse.json({
 
-      success: true,
+  success: true,
 
-      withdrawals:
-        withdrawals || []
+  withdrawals:
+    withdrawalsWithUsers
 
-    })
+})
 
   } catch (err: any) {
 

@@ -6,75 +6,111 @@ export const revalidate = 0
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
+    // =====================================================
+    // CRON AUTH
+    // =====================================================
 
-if (
-  authHeader !==
-  `Bearer ${process.env.CRON_SECRET}`
-) {
-  return NextResponse.json(
-    {
-      success: false,
-      error: 'Unauthorized',
-    },
-    {
-      status: 401,
+    const authHeader =
+      request.headers.get('authorization')
+
+    if (
+      authHeader !==
+      `Bearer ${process.env.CRON_SECRET}`
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Unauthorized',
+        },
+        {
+          status: 401,
+        }
+      )
     }
-  )
-}
-    console.log('===== ROI PROCESSOR START =====')
 
-    const supabase = supabaseAdmin
+    console.log(
+      '===== SHARE PLAN ROI PROCESSOR START ====='
+    )
+
+    // =====================================================
+    // GET ACTIVE PLANS
+    // =====================================================
 
     const {
       data: plans,
       error: plansError,
-    } = await supabase
+    } = await supabaseAdmin
       .from('shared_plans')
       .select('*')
       .eq('status', 'active')
+      .eq('active', true)
 
     if (plansError) {
-      throw new Error(plansError.message)
+      throw new Error(
+        plansError.message
+      )
     }
 
-    if (!plans || plans.length === 0) {
+    if (
+      !plans ||
+      plans.length === 0
+    ) {
       return NextResponse.json({
         success: true,
         message: 'No active plans',
       })
     }
 
+    // =====================================================
+    // PROCESS EACH PLAN
+    // =====================================================
+
     for (const plan of plans) {
-
-  console.log(
-    'PROCESSING PLAN:',
-    plan.id,
-    {
-      status: plan.status,
-      days_completed: plan.days_completed,
-      duration_days: plan.duration_days,
-      amount: plan.amount,
-    }
-  )
-
       try {
-        const amount = Number(
-          plan.amount || 0
+        console.log(
+          'PROCESSING PLAN:',
+          plan.id
         )
 
-        const roiPercent = Number(
-          plan.daily_roi || 0
-        )
+        const amount =
+          Number(
+            plan.amount || 0
+          )
+
+        const roiPercent =
+          Number(
+            plan.daily_roi || 0
+          )
+
+        const durationDays =
+          Number(
+            plan.duration_days || 30
+          )
+
+        const daysCompleted =
+          Number(
+            plan.days_completed || 0
+          )
 
         if (
           amount <= 0 ||
-          roiPercent <= 0
+          roiPercent <= 0 ||
+          durationDays <= 0
         ) {
+          console.error(
+            'INVALID PLAN:',
+            plan.id
+          )
+
           continue
         }
 
-        const now = new Date()
+        // =================================================
+        // TIME CHECK
+        // =================================================
+
+        const now =
+          new Date()
 
         const lastProfit =
           plan.last_profit_at
@@ -92,335 +128,475 @@ if (
               (1000 * 60 * 60)
             : 999999
 
-       
+        // =================================================
+        // DO NOT PROCESS MORE THAN ONCE PER 24 HOURS
+        // =================================================
 
-        // ==========================
-        // GET BALANCE
-        // ==========================
+        if (
+          lastProfit &&
+          hoursPassed < 24
+        ) {
+          console.log(
+            'LESS THAN 24 HOURS:',
+            plan.id
+          )
+
+          continue
+        }
+
+        // =================================================
+        // DETERMINE THIS IS THE FINAL DAY
+        // =================================================
+
+        const nextDay =
+          daysCompleted + 1
+
+        const isFinalDay =
+          nextDay >= durationDays
+
+        console.log(
+          'PLAN DAY:',
+          {
+            planId: plan.id,
+            currentDay:
+              daysCompleted,
+            nextDay,
+            durationDays,
+            isFinalDay,
+          }
+        )
+
+        // =================================================
+        // CALCULATE DAILY ROI
+        // =================================================
+
+        const profit =
+          (
+            amount *
+            roiPercent
+          ) / 100
+
+        console.log(
+          'DAILY PROFIT:',
+          profit
+        )
+
+        // =================================================
+        // GET USER BALANCE
+        // =================================================
 
         const {
           data: balance,
           error: balanceError,
-        } = await supabase
-          .from('balances')
-          .select('*')
-          .eq(
-            'user_id',
-            plan.user_id
-          )
-          .single()
+        } =
+          await supabaseAdmin
+            .from('balances')
+            .select('*')
+            .eq(
+              'user_id',
+              plan.user_id
+            )
+            .single()
 
         if (
           balanceError ||
           !balance
         ) {
           console.error(
-            'Balance error:',
+            'BALANCE ERROR:',
             balanceError
           )
 
           continue
         }
 
-        // ==========================
-// PLAN COMPLETION
-// ==========================
+        const currentCash =
+          Number(
+            balance.cash || 0
+          )
 
-if (
-  Number(plan.days_completed || 0) >=
-  Number(plan.duration_days || 30)
-) {
-  console.log(
-    'ENTERING COMPLETION BLOCK',
-    {
-      planId: plan.id,
-      days_completed:
-        plan.days_completed,
-      duration_days:
-        plan.duration_days,
-      amount:
-        plan.amount,
-    }
-  )
+        const currentShares =
+          Number(
+            balance.shares || 0
+          )
 
-  const principal =
-    Number(plan.amount || 0)
+        // =================================================
+        // CREDIT TODAY'S ROI
+        // =================================================
 
-  const currentCash =
-    Number(balance.cash || 0)
+        const cashAfterProfit =
+          currentCash +
+          profit
 
-  const currentShares =
-    Number(balance.shares || 0)
+        const {
+          error:
+            profitBalanceError,
+        } =
+          await supabaseAdmin
+            .from('balances')
+            .update({
+              cash:
+                cashAfterProfit,
 
-  const {
-    data: returnedBalance,
-    error: returnError,
-  } = await supabase
-    .from('balances')
-    .update({
-      cash:
-        currentCash +
-        principal,
-
-      shares: Math.max(
-        0,
-        currentShares -
-          principal
-      ),
-
-      updated_at:
-        new Date().toISOString(),
-    })
-    .eq(
-      'user_id',
-      plan.user_id
-    )
-    .select()
-
-  console.log(
-    'BALANCE RETURN RESULT:',
-    returnedBalance
-  )
-
-  console.log(
-    'BALANCE RETURN ERROR:',
-    returnError
-  )
-
-  if (returnError) {
-    continue
-  }
-
-  const {
-    data: completedPlan,
-    error: completeError,
-  } = await supabase
-    .from('shared_plans')
-    .update({
-      status: 'completed',
-      active: false,
-      updated_at:
-        new Date().toISOString(),
-    })
-    .eq('id', plan.id)
-    .select()
-
-  console.log(
-    'COMPLETE UPDATE RESULT:',
-    completedPlan
-  )
-
-  console.log(
-    'COMPLETE UPDATE ERROR:',
-    completeError
-  )
-
-  if (completeError) {
-    continue
-  }
-
-  await supabase
-    .from('transactions')
-    .insert({
-      user_id:
-        plan.user_id,
-
-      type:
-        'shared_plan_completed',
-
-      amount:
-        principal,
-
-      status:
-        'completed',
-
-      description:
-        'Investment principal returned',
-
-      created_at:
-        new Date().toISOString(),
-    })
-
-  console.log(
-    'PLAN COMPLETED:',
-    plan.id
-  )
-
-  continue
-   }
-
-    // ==========================
-        // ONLY ONCE EVERY 24 HOURS
-        // ==========================
+              updated_at:
+                now.toISOString(),
+            })
+            .eq(
+              'user_id',
+              plan.user_id
+            )
 
         if (
-          lastProfit &&
-          hoursPassed < 24
+          profitBalanceError
         ) {
-          continue
-        }
-        
-
-        // ==========================
-        // CALCULATE PROFIT
-        // ==========================
-
-        const profit =
-          (amount *
-            roiPercent) /
-          100
-
-        console.log(
-          'PROFIT:',
-          profit
-        )
-
-        // ==========================
-        // CREDIT CASH
-        // ==========================
-
-        const {
-          error: walletError,
-        } = await supabase
-          .from('balances')
-          .update({
-            cash:
-              Number(
-                balance.cash || 0
-              ) + profit,
-
-            updated_at:
-              new Date().toISOString(),
-          })
-          .eq(
-            'user_id',
-            plan.user_id
-          )
-
-        if (walletError) {
           console.error(
-            walletError
+            'PROFIT BALANCE ERROR:',
+            profitBalanceError
           )
 
           continue
         }
 
-        // ==========================
+        // =================================================
         // PROFIT HISTORY
-        // ==========================
+        // =================================================
 
         const {
-          error: profitError,
-        } = await supabase
-          .from(
-            'shared_plan_profits'
-          )
-          .insert({
-            user_id:
-              plan.user_id,
+          error:
+            profitHistoryError,
+        } =
+          await supabaseAdmin
+            .from(
+              'shared_plan_profits'
+            )
+            .insert({
+              user_id:
+                plan.user_id,
 
-            shared_plan_id:
-              plan.id,
+              shared_plan_id:
+                plan.id,
 
-            amount:
-              profit,
+              amount:
+                profit,
 
-            roi_percent:
-              roiPercent,
+              roi_percent:
+                roiPercent,
 
-            credited: true,
+              credited:
+                true,
 
-            created_at:
-              new Date().toISOString(),
-          })
+              created_at:
+                now.toISOString(),
+            })
 
-        if (profitError) {
+        if (
+          profitHistoryError
+        ) {
           console.error(
-            profitError
+            'PROFIT HISTORY ERROR:',
+            profitHistoryError
           )
         }
 
-        // ==========================
-        // UPDATE PLAN
-        // ==========================
+        // =================================================
+        // ROI TRANSACTION
+        // =================================================
 
-        await supabase
-          .from('shared_plans')
-          .update({
-            total_profit_generated:
-              Number(
-                plan.total_profit_generated ||
-                  0
-              ) + profit,
+        const {
+          error:
+            roiTransactionError,
+        } =
+          await supabaseAdmin
+            .from('transactions')
+            .insert({
+              user_id:
+                plan.user_id,
 
-            days_completed:
-              Number(
-                plan.days_completed ||
-                  0
-              ) + 1,
+              type:
+                'roi',
 
-            last_profit_at:
-              new Date().toISOString(),
+              amount:
+                profit,
 
-            updated_at:
-              new Date().toISOString(),
-          })
-          .eq(
-            'id',
+              status:
+                'completed',
+
+              description:
+                `Share Plan daily ROI - Day ${nextDay}/${durationDays}`,
+
+              created_at:
+                now.toISOString(),
+            })
+
+        if (
+          roiTransactionError
+        ) {
+          console.error(
+            'ROI TRANSACTION ERROR:',
+            roiTransactionError
+          )
+        }
+
+        // =================================================
+        // FINAL DAY
+        //
+        // The final day's ROI has now been paid.
+        // Return the original investment immediately.
+        // =================================================
+
+        if (
+          isFinalDay
+        ) {
+          console.log(
+            'FINAL DAY REACHED:',
             plan.id
           )
 
-        // ==========================
-        // TRANSACTION
-        // ==========================
+          const principal =
+            amount
 
-        await supabase
-          .from('transactions')
-          .insert({
-            user_id:
-              plan.user_id,
+          const finalCash =
+            cashAfterProfit +
+            principal
 
-            type: 'roi',
+          const finalShares =
+            Math.max(
+              0,
+              currentShares -
+                principal
+            )
 
-            amount:
-              profit,
+          // ===============================================
+          // RETURN PRINCIPAL
+          // ===============================================
 
-            status:
-              'completed',
+          const {
+            error:
+              principalError,
+          } =
+            await supabaseAdmin
+              .from('balances')
+              .update({
+                cash:
+                  finalCash,
 
-            description:
-              'Shared plan ROI credited',
+                shares:
+                  finalShares,
 
-            created_at:
-              new Date().toISOString(),
-          })
+                updated_at:
+                  now.toISOString(),
+              })
+              .eq(
+                'user_id',
+                plan.user_id
+              )
+
+          if (
+            principalError
+          ) {
+            console.error(
+              'PRINCIPAL RETURN ERROR:',
+              principalError
+            )
+
+            continue
+          }
+
+          // ===============================================
+          // COMPLETE PLAN
+          // ===============================================
+
+          const {
+            error:
+              completeError,
+          } =
+            await supabaseAdmin
+              .from('shared_plans')
+              .update({
+                status:
+                  'completed',
+
+                active:
+                  false,
+
+                days_completed:
+                  nextDay,
+
+                total_profit_generated:
+                  Number(
+                    plan.total_profit_generated ||
+                      0
+                  ) + profit,
+
+                last_profit_at:
+                  now.toISOString(),
+
+                updated_at:
+                  now.toISOString(),
+              })
+              .eq(
+                'id',
+                plan.id
+              )
+              .eq(
+                'status',
+                'active'
+              )
+
+          if (
+            completeError
+          ) {
+            console.error(
+              'PLAN COMPLETION ERROR:',
+              completeError
+            )
+
+            continue
+          }
+
+          // ===============================================
+          // PRINCIPAL RETURN TRANSACTION
+          // ===============================================
+
+          const {
+            error:
+              principalTransactionError,
+          } =
+            await supabaseAdmin
+              .from('transactions')
+              .insert({
+                user_id:
+                  plan.user_id,
+
+                type:
+                  'shared_plan_completed',
+
+                amount:
+                  principal,
+
+                status:
+                  'completed',
+
+                description:
+                  'Share Plan investment principal returned',
+
+                created_at:
+                  now.toISOString(),
+              })
+
+          if (
+            principalTransactionError
+          ) {
+            console.error(
+              'PRINCIPAL TRANSACTION ERROR:',
+              principalTransactionError
+            )
+          }
+
+          console.log(
+            '✅ SHARE PLAN COMPLETED:',
+            plan.id
+          )
+
+          continue
+        }
+
+        // =================================================
+        // NORMAL DAY
+        // =================================================
+
+        const {
+          error:
+            planUpdateError,
+        } =
+          await supabaseAdmin
+            .from('shared_plans')
+            .update({
+              total_profit_generated:
+                Number(
+                  plan.total_profit_generated ||
+                    0
+                ) + profit,
+
+              days_completed:
+                nextDay,
+
+              last_profit_at:
+                now.toISOString(),
+
+              updated_at:
+                now.toISOString(),
+            })
+            .eq(
+              'id',
+              plan.id
+            )
+            .eq(
+              'status',
+              'active'
+            )
+
+        if (
+          planUpdateError
+        ) {
+          console.error(
+            'PLAN UPDATE ERROR:',
+            planUpdateError
+          )
+
+          continue
+        }
 
         console.log(
-          'ROI CREDITED:',
-          plan.id
+          '✅ ROI CREDITED:',
+          {
+            planId:
+              plan.id,
+            day:
+              nextDay,
+            profit,
+          }
         )
-      } catch (planError) {
+      } catch (
+        planError
+      ) {
         console.error(
-          'PLAN ERROR:',
+          'PLAN PROCESSING ERROR:',
           plan.id,
           planError
         )
       }
     }
 
+    // =====================================================
+    // SUCCESS
+    // =====================================================
+
+    console.log(
+      '===== SHARE PLAN ROI PROCESSOR COMPLETE ====='
+    )
+
     return NextResponse.json({
       success: true,
     })
-  } catch (err: any) {
+  } catch (
+    err: unknown
+  ) {
     console.error(
-      'ROI PROCESSOR ERROR:',
+      'SHARE PLAN ROI PROCESSOR ERROR:',
       err
     )
+
+    const message =
+      err instanceof Error
+        ? err.message
+        : 'Server error'
 
     return NextResponse.json(
       {
         success: false,
-        error: err.message,
+        error:
+          message,
       },
       {
         status: 500,

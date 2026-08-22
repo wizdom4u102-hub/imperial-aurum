@@ -7,7 +7,10 @@ export async function POST(req: Request) {
   try {
     const supabase = await createClient()
 
-    // ================= AUTH =================
+    // =====================================================
+    // AUTH
+    // =====================================================
+
     const {
       data: { user },
       error: userError,
@@ -24,18 +27,33 @@ export async function POST(req: Request) {
       )
     }
 
-    // ================= BODY =================
+    // =====================================================
+    // BODY
+    // =====================================================
+
     const body = await req.json()
 
-    const {
-      amount,
-      method_id,
-    } = body
+    const amount = Number(
+      body?.amount || 0
+    )
 
-    // ================= VALIDATION =================
+    const methodId =
+      typeof body?.method_id === 'string'
+        ? body.method_id
+        : ''
+
+    const miningPlanId =
+      typeof body?.mining_plan_id === 'string'
+        ? body.mining_plan_id
+        : ''
+
+    // =====================================================
+    // VALIDATION
+    // =====================================================
+
     if (
       !amount ||
-      Number(amount) <= 0
+      amount <= 0
     ) {
       return NextResponse.json(
         {
@@ -47,10 +65,11 @@ export async function POST(req: Request) {
       )
     }
 
-    if (!method_id) {
+    if (!methodId) {
       return NextResponse.json(
         {
-          error: 'Payment method required',
+          error:
+            'Payment method required',
         },
         {
           status: 400,
@@ -58,23 +77,258 @@ export async function POST(req: Request) {
       )
     }
 
-    // ================= CREATE DEPOSIT =================
+    // =====================================================
+    // VERIFY PAYMENT METHOD
+    // =====================================================
+
+    const {
+      data: paymentMethod,
+      error: paymentMethodError,
+    } = await supabase
+      .from('payment_methods')
+      .select('*')
+      .eq(
+        'id',
+        methodId
+      )
+      .eq(
+        'is_active',
+        true
+      )
+      .maybeSingle()
+
+    if (paymentMethodError) {
+      console.error(
+        'PAYMENT METHOD ERROR:',
+        paymentMethodError
+      )
+
+      return NextResponse.json(
+        {
+          error:
+            paymentMethodError.message,
+        },
+        {
+          status: 500,
+        }
+      )
+    }
+
+    if (!paymentMethod) {
+      return NextResponse.json(
+        {
+          error:
+            'Selected payment method is not available.',
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    // =====================================================
+    // MINING PLAN VALIDATION
+    //
+    // If mining_plan_id is provided, this is a Mining Plan
+    // deposit.
+    //
+    // If it is empty, this remains a normal deposit.
+    // =====================================================
+
+    let miningPlan:
+      | {
+          id: string
+          name: string
+          minimum_amount: number
+          maximum_amount: number
+          gold_per_dollar: number
+          is_active: boolean
+          is_free: boolean
+        }
+      | null = null
+
+    if (miningPlanId) {
+      const {
+        data: plan,
+        error: miningPlanError,
+      } = await supabase
+        .from('mining_plans')
+        .select(
+          `
+            id,
+            name,
+            minimum_amount,
+            maximum_amount,
+            gold_per_dollar,
+            is_active,
+            is_free
+          `
+        )
+        .eq(
+          'id',
+          miningPlanId
+        )
+        .maybeSingle()
+
+      if (miningPlanError) {
+        console.error(
+          'MINING PLAN ERROR:',
+          miningPlanError
+        )
+
+        return NextResponse.json(
+          {
+            error:
+              miningPlanError.message,
+          },
+          {
+            status: 500,
+          }
+        )
+      }
+
+      if (!plan) {
+        return NextResponse.json(
+          {
+            error:
+              'Selected Mining Plan was not found.',
+          },
+          {
+            status: 400,
+          }
+        )
+      }
+
+      if (!plan.is_active) {
+        return NextResponse.json(
+          {
+            error:
+              'Selected Mining Plan is currently unavailable.',
+          },
+          {
+            status: 400,
+          }
+        )
+      }
+
+      if (plan.is_free) {
+        return NextResponse.json(
+          {
+            error:
+              'The Free Mining Plan does not require a deposit.',
+          },
+          {
+            status: 400,
+          }
+        )
+      }
+
+      const minimumAmount =
+        Number(
+          plan.minimum_amount
+        )
+
+      const maximumAmount =
+        Number(
+          plan.maximum_amount
+        )
+
+      if (
+        amount <
+          minimumAmount ||
+        amount >
+          maximumAmount
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              `${plan.name} accepts investments from $${minimumAmount} to $${maximumAmount}.`,
+          },
+          {
+            status: 400,
+          }
+        )
+      }
+
+      miningPlan = {
+        id:
+          plan.id,
+
+        name:
+          plan.name,
+
+        minimum_amount:
+          minimumAmount,
+
+        maximum_amount:
+          maximumAmount,
+
+        gold_per_dollar:
+          Number(
+            plan.gold_per_dollar
+          ),
+
+        is_active:
+          plan.is_active,
+
+        is_free:
+          plan.is_free,
+      }
+
+      console.log(
+        'MINING PLAN DEPOSIT:',
+        {
+          planId:
+            miningPlan.id,
+
+          planName:
+            miningPlan.name,
+
+          amount,
+
+          goldPerDollar:
+            miningPlan.gold_per_dollar,
+
+          dailyGold:
+            amount *
+            miningPlan.gold_per_dollar,
+        }
+      )
+    }
+
+    // =====================================================
+    // CREATE DEPOSIT
+    // =====================================================
+
+    const now =
+      new Date().toISOString()
+
     const {
       data: deposit,
       error: depositError,
     } = await supabase
       .from('deposits')
       .insert({
-        user_id: user.id,
+        user_id:
+          user.id,
 
-        amount: Number(amount),
+        amount:
+          amount,
 
-        method_id,
+        method_id:
+          methodId,
 
-        status: 'pending',
+        mining_plan_id:
+          miningPlanId || null,
+
+        status:
+          'pending',
 
         created_at:
-          new Date().toISOString(),
+          now,
+
+        updated_at:
+          now,
       })
       .select()
       .single()
@@ -96,90 +350,224 @@ export async function POST(req: Request) {
       )
     }
 
-    // ================= TRANSACTION HISTORY =================
+    // =====================================================
+    // TRANSACTION HISTORY
+    //
+    // reference_id directly points to the deposit.
+    // This prevents approval from accidentally updating
+    // another transaction with the same amount.
+    // =====================================================
 
-const {
-  error: txError,
-} = await supabase
-  .from('transactions')
-  .insert({
+    const transactionDescription =
+      miningPlan
+        ? `${miningPlan.name} Mining Plan investment of $${amount} submitted for approval`
+        : `Deposit request of $${amount} submitted`
 
-    // IMPORTANT
-    // link transaction to deposit
-    deposit_id:
-      deposit.id,
+    const {
+      data: transaction,
+      error: txError,
+    } = await supabase
+      .from('transactions')
+      .insert({
+        user_id:
+          user.id,
 
-    user_id:
-      user.id,
+        type:
+          'deposit',
 
-    type:
-      'deposit',
+        amount:
+          amount,
 
-    amount:
-      Number(amount),
+        status:
+          'pending',
 
-    status:
-      'pending',
+        reference_id:
+          deposit.id,
 
-    description:
-      `Deposit request of $${Number(amount)} submitted`,
+        asset_type:
+          miningPlan
+            ? 'mining'
+            : 'cash',
 
-    created_at:
-      new Date().toISOString(),
+        currency:
+          'USD',
 
-  })
+        description:
+          transactionDescription,
 
-if (txError) {
+        created_at:
+          now,
+      })
+      .select()
+      .single()
 
-  console.error(
-    'TRANSACTION INSERT ERROR:',
-    txError
-  )
+    if (txError) {
+      console.error(
+        'TRANSACTION INSERT ERROR:',
+        txError
+      )
 
-}
+      // ===================================================
+      // ROLLBACK DEPOSIT
+      // ===================================================
 
-// ================= SEND EMAIL =================
+      await supabase
+        .from('deposits')
+        .delete()
+        .eq(
+          'id',
+          deposit.id
+        )
 
-try {
-  const { data: method } = await supabase
-    .from('payment_methods')
-    .select('name')
-    .eq('id', method_id)
-    .single()
+      return NextResponse.json(
+        {
+          error:
+            'Failed to create transaction history for this deposit.',
+        },
+        {
+          status: 500,
+        }
+      )
+    }
 
-  await sendEmail({
-    to: user.email!,
-    subject: 'Deposit Request Received',
-    html: depositSubmittedEmail(
-      Number(amount),
-      method?.name || 'Payment Method'
-    ),
-  })
-} catch (emailError) {
-  console.error(
-    'DEPOSIT EMAIL ERROR:',
-    emailError
-  )
-}
+    // =====================================================
+    // EMAIL NOTIFICATION
+    // =====================================================
 
-    // ================= SUCCESS =================
+    try {
+      await sendEmail({
+        to:
+          user.email!,
+
+        subject:
+          miningPlan
+            ? 'Mining Plan Deposit Received'
+            : 'Deposit Request Received',
+
+        html:
+          depositSubmittedEmail(
+            amount,
+            paymentMethod.name
+          ),
+      })
+    } catch (emailError) {
+      console.error(
+        'DEPOSIT EMAIL ERROR:',
+        emailError
+      )
+
+      // Email failure does NOT cancel the deposit.
+      // The deposit and transaction already exist.
+    }
+
+    // =====================================================
+    // AUDIT LOG
+    // =====================================================
+
+    console.log(
+      '================================================='
+    )
+
+    console.log(
+      '✅ DEPOSIT CREATED'
+    )
+
+    console.log(
+      'USER:',
+      user.id
+    )
+
+    console.log(
+      'DEPOSIT ID:',
+      deposit.id
+    )
+
+    console.log(
+      'TRANSACTION ID:',
+      transaction.id
+    )
+
+    console.log(
+      'AMOUNT:',
+      amount
+    )
+
+    console.log(
+      'PAYMENT METHOD:',
+      paymentMethod.name
+    )
+
+    console.log(
+      'DEPOSIT TYPE:',
+      miningPlan
+        ? 'MINING PLAN'
+        : 'NORMAL DEPOSIT'
+    )
+
+    if (miningPlan) {
+      console.log(
+        'MINING PLAN:',
+        miningPlan.name
+      )
+
+      console.log(
+        'MINING PLAN ID:',
+        miningPlan.id
+      )
+
+      console.log(
+        'EXPECTED DAILY GOLD:',
+        amount *
+          miningPlan.gold_per_dollar
+      )
+    }
+
+    console.log(
+      '================================================='
+    )
+
+    // =====================================================
+    // SUCCESS
+    // =====================================================
+
     return NextResponse.json({
-      success: true,
+      success:
+        true,
+
       deposit,
+
+      transaction,
+
+      miningPlan:
+        miningPlan
+          ? {
+              id:
+                miningPlan.id,
+
+              name:
+                miningPlan.name,
+
+              dailyGold:
+                amount *
+                miningPlan.gold_per_dollar,
+            }
+          : null,
     })
-
-  } catch (err: any) {
-
+  } catch (err: unknown) {
     console.error(
       'DEPOSIT API ERROR:',
       err
     )
 
+    const message =
+      err instanceof Error
+        ? err.message
+        : 'Server error'
+
     return NextResponse.json(
       {
         error:
-          err.message ||
-          'Server error',
+          message,
       },
       {
         status: 500,

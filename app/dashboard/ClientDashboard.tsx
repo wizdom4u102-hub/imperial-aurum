@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { logoutAction } from '../../actions/auth';
 import Link from 'next/link';
+import { Cpu } from "lucide-react";
 
 interface ClientDashboardProps {
   profile: any
@@ -11,6 +12,11 @@ interface ClientDashboardProps {
   withdrawals: any[]
   transactions: any[]
   session: any
+  currentMiningPlan: {
+    id: string
+    name: string
+    is_free: boolean
+  } | null
   referralLink: string
 }
 
@@ -20,6 +26,7 @@ export default function ClientDashboard({
   withdrawals,
   transactions,
   session,
+  currentMiningPlan,
   referralLink,
 }: ClientDashboardProps)
 
@@ -175,21 +182,31 @@ useEffect(() => {
     Dashboard
   </Link>
 
-  {/* Deposit */}
-  <details className="group">
-    <summary className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer list-none">
-      <span>Deposit</span>
-      <span className="text-xs text-zinc-500 group-open:rotate-180 transition-transform">⌄</span>
-    </summary>
-    <div className="ml-4 mt-1 space-y-1 text-zinc-400">
-      <Link className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white" href="/deposit">
-        All Deposits
-      </Link>
-      <Link className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white" href="/deposit/new">
-        New Deposit
-      </Link>
-    </div>
-  </details>
+  {/* Mining Plans */}
+<details className="group">
+  <summary className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer list-none">
+    <span>Mining Plans</span>
+    <span className="text-xs text-zinc-500 group-open:rotate-180 transition-transform">
+      ⌄
+    </span>
+  </summary>
+
+  <div className="ml-4 mt-1 space-y-1 text-zinc-400">
+    <Link
+      className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+      href="/dashboard/mining-plans"
+    >
+      Purchase Mining Power
+    </Link>
+
+    <Link
+      className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+      href="/deposit"
+    >
+      Deposit History
+    </Link>
+  </div>
+</details>
 
   {/* Withdraw */}
   <details className="group">
@@ -281,6 +298,14 @@ useEffect(() => {
     Referrals
   </Link>
 
+  <Link
+  href="/dashboard/trading-bot"
+  className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-900 text-zinc-400 hover:text-amber-500 transition-colors"
+>
+  <Cpu className="w-5 h-5 text-amber-500" />
+  <span>Trading Bot</span>
+</Link>
+
             <Link
               href="/change-password"
               className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors"
@@ -319,10 +344,11 @@ useEffect(() => {
             <div>
               <h2 className="text-2xl md:text-4xl font-semibold">Dashboard</h2>
               <p className="text-zinc-400 mt-2">
-                Current Plan: <span className="text-yellow-400 font-medium">
-                  {balance.is_premium ? 'Premium' : 'Free'}
-                </span>
-              </p>
+  Current Plan:{' '}
+  <span className="text-yellow-400 font-medium">
+    {currentMiningPlan?.name || 'Free'}
+  </span>
+</p>
             </div>
 
             <button
@@ -355,7 +381,6 @@ useEffect(() => {
 
             {/* Mining */}
             <MiningCard
-              ratePerHour={balance.mining_rate_per_hour || 5}
               session={session}
             />
           </div>
@@ -452,14 +477,29 @@ useEffect(() => {
 // ================= MINING CARD =================
 
 function MiningCard({
-  ratePerHour = 5,
+  session,
 }: {
-  ratePerHour: number;
-  session?: any;
+  session?: {
+    id: string
+    user_id: string
+    active: boolean | null
+    status: string | null
+    started_at: string | null
+    ends_at: string | null
+    last_claim_at: string | null
+    rate_per_second: number | null
+    reward: number | null
+    total_earned: number | null
+    boost?: number
+  } | null
 }) {
 
   const [timeLeft, setTimeLeft] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [currentSession, setCurrentSession] = useState(session);
+
+  const ratePerHour =
+  Number(currentSession?.rate_per_second || 0) * 3600
 
   // ================= LOAD SESSION =================
 const fetchSession = async () => {
@@ -488,9 +528,11 @@ const fetchSession = async () => {
     );
 
     // no active mining session
-    if (
-  !data?.success
+   if (
+  !data?.session
 ) {
+
+  setCurrentSession(null);
 
   setTimeLeft(0);
 
@@ -503,6 +545,8 @@ const fetchSession = async () => {
 if (
   data?.completed
 ) {
+
+  setCurrentSession(null);
 
   setTimeLeft(0);
 
@@ -517,17 +561,8 @@ if (
   return;
 }
 
-// no active session
-if (
-  !data?.session
-) {
 
-  setTimeLeft(0);
-
-  setLoading(false);
-
-  return;
-}
+setCurrentSession(data.session);
 
    // ================= FIX UTC DB TIME =================
 

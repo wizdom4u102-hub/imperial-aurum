@@ -1,167 +1,122 @@
 export default function PlanComparison() {
   const rows = [
     {
-      feature: "Daily Mining Rewards",
-      free: "120 Gold",
-      premium: "Up to 1000 Gold",
-      shared: "Team Based",
-    },
-
-    {
-      feature: "Cloud Mining Access",
+      feature: "Mining Access",
       free: "✓",
       premium: "✓",
-      shared: "✓",
     },
-
+    {
+      feature: "Daily Mining Rewards",
+      free: "Free Daily Gold",
+      premium: "Based on Investment",
+    },
+    {
+      feature: "Investment Required",
+      free: "Free",
+      premium: "Paid Plans",
+    },
+    {
+      feature: "Mining Power",
+      free: "Standard",
+      premium: "Increased",
+    },
     {
       feature: "Personal Dashboard",
       free: "✓",
       premium: "✓",
-      shared: "✓",
     },
-
+    {
+      feature: "Mining Rewards",
+      free: "Every 24 Hours",
+      premium: "Every 24 Hours",
+    },
     {
       feature: "Withdrawals",
-      free: "Standard",
-      premium: "Priority",
-      shared: "Priority",
+      free: "Available",
+      premium: "Available",
     },
-
     {
-      feature: "Referral Program",
-      free: "Basic",
-      premium: "Enhanced",
-      shared: "20 Levels",
-    },
-
-    {
-      feature: "Team Bonuses",
-      free: "✗",
+      feature: "Plan Upgrades",
+      free: "✓",
       premium: "✓",
-      shared: "✓✓",
-    },
-
-    {
-      feature: "Leadership Rewards",
-      free: "✗",
-      premium: "✓",
-      shared: "✓",
-    },
-
-    {
-      feature: "Shared Mining Rewards",
-      free: "✗",
-      premium: "✓",
-      shared: "✓",
     },
   ];
 
-
   return (
+    <section className="bg-zinc-950 px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
+      <div className="mx-auto w-full max-w-7xl">
 
-    <section className="py-28 bg-zinc-950">
-
-      <div className="max-w-7xl mx-auto px-6">
-
-
-        <div className="text-center mb-16">
-
-          <span className="uppercase tracking-[5px] text-yellow-400 text-sm">
+        {/* HEADER */}
+        <div className="mb-12 text-center sm:mb-16">
+          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-yellow-400 sm:text-sm sm:tracking-[0.35em]">
             Compare Plans
           </span>
 
-          <h2 className="text-5xl font-bold mt-5">
-            Choose Your Growth Path
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+            Choose Your Mining Path
           </h2>
 
+          <p className="mx-auto mt-5 max-w-2xl text-sm leading-6 text-zinc-400 sm:text-base sm:leading-7">
+            Compare the Free and Premium mining options and
+            choose the plan that fits your goals.
+          </p>
         </div>
 
-
-
-        <div className="overflow-x-auto">
-
-
-          <table className="w-full border-collapse">
-
-
+        {/* COMPARISON */}
+        <div className="overflow-x-auto rounded-3xl border border-zinc-800 bg-black shadow-2xl">
+          <table className="w-full min-w-[700px] border-collapse">
             <thead>
-
-              <tr className="text-left">
-
-                <th className="p-6 text-zinc-400">
+              <tr className="border-b border-zinc-800">
+                <th className="p-5 text-left text-sm font-semibold text-zinc-400 sm:p-6">
                   Feature
                 </th>
 
-
-                <th className="p-6 text-yellow-400">
-                  Free
+                <th className="p-5 text-left text-sm font-semibold text-yellow-400 sm:p-6">
+                  Free Plan
                 </th>
 
-
-                <th className="p-6 text-yellow-400">
-                  Premium
+                <th className="p-5 text-left text-sm font-semibold text-yellow-400 sm:p-6">
+                  Premium Plans
                 </th>
-
-
-                <th className="p-6 text-yellow-400">
-                  Shared
-                </th>
-
               </tr>
-
             </thead>
 
-
-
             <tbody>
-
-
-              {rows.map((row,index)=>(
-
+              {rows.map((row) => (
                 <tr
-                  key={index}
-                  className="border-t border-zinc-800"
+                  key={row.feature}
+                  className="border-b border-zinc-800/80 transition-colors last:border-b-0 hover:bg-white/[0.02]"
                 >
-
-                  <td className="p-6 font-semibold">
+                  <td className="p-5 text-sm font-semibold text-white sm:p-6 sm:text-base">
                     {row.feature}
                   </td>
 
-
-                  <td className="p-6 text-zinc-300">
-                    {row.free}
+                  <td className="p-5 text-sm text-zinc-300 sm:p-6">
+                    {row.free === "✓" ? (
+                      <span className="font-semibold text-emerald-400">
+                        ✓
+                      </span>
+                    ) : (
+                      row.free
+                    )}
                   </td>
 
-
-                  <td className="p-6 text-zinc-300">
-                    {row.premium}
+                  <td className="p-5 text-sm text-zinc-300 sm:p-6">
+                    {row.premium === "✓" ? (
+                      <span className="font-semibold text-emerald-400">
+                        ✓
+                      </span>
+                    ) : (
+                      row.premium
+                    )}
                   </td>
-
-
-                  <td className="p-6 text-zinc-300">
-                    {row.shared}
-                  </td>
-
-
                 </tr>
-
               ))}
-
-
             </tbody>
-
-
           </table>
-
-
         </div>
 
-
       </div>
-
     </section>
-
   );
-
 }

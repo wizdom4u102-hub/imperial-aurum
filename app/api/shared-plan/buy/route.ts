@@ -12,7 +12,10 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient()
 
-    // ================= USER =================
+    // =====================================================
+    // USER
+    // =====================================================
+
     const {
       data: { user },
       error: authError,
@@ -20,23 +23,46 @@ export async function POST(req: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        {
+          error: 'Unauthorized',
+        },
+        {
+          status: 401,
+        }
       )
     }
 
-    console.log('USER:', user.id)
-
-    // ================= REQUEST =================
-    const body = await req.json()
-
     console.log(
-      'REQUEST BODY:',
-      body
+      'USER:',
+      user.id
     )
 
-    const amount =
-      Number(body?.amount || 0)
+    // =====================================================
+    // REQUEST
+    // =====================================================
+
+    const body = await req.json()
+
+    const amount = Number(
+      body?.amount || 0
+    )
+
+    const methodId =
+      typeof body?.method_id === 'string'
+        ? body.method_id
+        : ''
+
+    console.log(
+      'REQUEST:',
+      {
+        amount,
+        methodId,
+      }
+    )
+
+    // =====================================================
+    // VALIDATION
+    // =====================================================
 
     if (
       !amount ||
@@ -53,31 +79,110 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ================= BALANCE =================
+    if (!methodId) {
+      return NextResponse.json(
+        {
+          error:
+            'Payment method is required',
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    // =====================================================
+    // VERIFY PAYMENT METHOD
+    // =====================================================
+
     const {
-      data: balance,
-      error: balanceError,
+      data: paymentMethod,
+      error: paymentMethodError,
     } = await supabase
-      .from('balances')
+      .from('payment_methods')
       .select('*')
+      .eq('id', methodId)
+      .maybeSingle()
+
+    if (
+      paymentMethodError
+    ) {
+      console.error(
+        'PAYMENT METHOD ERROR:',
+        paymentMethodError
+      )
+
+      return NextResponse.json(
+        {
+          error:
+            paymentMethodError.message,
+        },
+        {
+          status: 500,
+        }
+      )
+    }
+
+    if (!paymentMethod) {
+      return NextResponse.json(
+        {
+          error:
+            'Selected payment method was not found.',
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    // =====================================================
+    // PREVENT DUPLICATE PENDING PLAN
+    // =====================================================
+
+    const {
+      data: existingPlan,
+      error: existingPlanError,
+    } = await supabase
+      .from('shared_plans')
+      .select('id')
       .eq(
         'user_id',
         user.id
       )
-      .single()
+      .eq(
+        'status',
+        'pending'
+      )
+      .eq(
+        'active',
+        false
+      )
+      .maybeSingle()
 
     if (
-      balanceError ||
-      !balance
+      existingPlanError
     ) {
       console.error(
-        balanceError
+        'EXISTING PLAN CHECK ERROR:',
+        existingPlanError
       )
 
       return NextResponse.json(
         {
           error:
-            'Balance not found',
+            existingPlanError.message,
+        },
+        {
+          status: 500,
+        }
+      )
+    }
+
+    if (existingPlan) {
+      return NextResponse.json(
+        {
+          error:
+            'You already have a Share Plan deposit waiting for approval.',
         },
         {
           status: 400,
@@ -85,143 +190,60 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    console.log(
-      'ACTIVE BALANCE:',
-      balance
-    )
+    // =====================================================
+    // CREATE PENDING SHARE PLAN
+    // =====================================================
 
-    const currentCash =
-      Number(
-        balance.cash || 0
-      )
-
-    if (
-      currentCash <
-      amount
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            'Insufficient cash balance',
-        },
-        {
-          status: 400,
-        }
-      )
-    }
-
-   // ================= UPDATE BALANCE =================
-
-const newCash =
-  Number(balance.cash || 0) - amount
-
-const newShares =
-  Number(balance.shares || 0) + amount
-
-console.log(
-  'BEFORE UPDATE:',
-  {
-    cash: balance.cash,
-    shares: balance.shares
-  }
-)
-
-const {
-  data: updatedBalance,
-  error: updateError
-} = await supabase
-.from('balances')
-.update({
-   cash:newCash,
-   shares:newShares,
-   updated_at:
-   new Date().toISOString()
-})
-.eq(
-   'id',
-   balance.id
-)
-.select(`
- id,
- cash,
- shares,
- updated_at
-`)
-.single()
-
-console.log(
-'AFTER UPDATE:',
-updatedBalance
-)
-
-if(updateError){
-
-console.error(
-'UPDATE ERROR:',
-updateError
-)
-
-return NextResponse.json(
-{
-error:updateError.message
-},
-{
-status:500
-})
-}
-
-    // ================= DATES =================
     const now =
       new Date()
 
-    const endDate =
-      new Date()
-
-    endDate.setDate(
-      endDate.getDate() + 30
-    )
-
-    // ================= CREATE PLAN =================
     const {
       data: plan,
-      error: shareError,
+      error: planError,
     } = await supabase
-      .from(
-        'shared_plans'
-      )
+      .from('shared_plans')
       .insert({
         user_id:
           user.id,
 
-        amount,
+        amount:
+          amount,
 
-        daily_roi: 5,
+        daily_roi:
+          5,
 
-        duration_days: 30,
+        duration_days:
+          30,
 
-        days_completed: 0,
+        days_completed:
+          0,
 
-        total_profit_generated: 0,
+        total_profit_generated:
+          0,
 
-        status: 'active',
+        status:
+          'pending',
 
         started_at:
-          now.toISOString(),
+          null,
 
         ends_at:
-          endDate.toISOString(),
+          null,
 
         last_profit_at:
-          now.toISOString(),
+          null,
 
-        monthly_roi:150,
+        monthly_roi:
+          150,
 
-        minimum_amount:1000,
+        minimum_amount:
+          1000,
 
         total_invested:
           amount,
 
-        active:true,
+        active:
+          false,
 
         title:
           'Imperial Gold Fund',
@@ -238,110 +260,217 @@ status:500
       .select()
       .single()
 
-    // rollback balance if plan fails
-    if (shareError) {
-
+    if (
+      planError ||
+      !plan
+    ) {
       console.error(
-        'PLAN ERROR:',
-        shareError
+        'SHARED PLAN CREATE ERROR:',
+        planError
       )
 
-      await supabase
-        .from(
-          'balances'
-        )
-        .update({
-          cash:
-            currentCash,
+      return NextResponse.json(
+        {
+          error:
+            planError?.message ||
+            'Failed to create Share Plan.',
+        },
+        {
+          status: 500,
+        }
+      )
+    }
 
-          shares:
-            Number(
-              balance.shares || 0
-            )
-        })
+    console.log(
+      'PENDING SHARE PLAN CREATED:',
+      plan.id
+    )
+
+    // =====================================================
+    // CREATE PENDING DEPOSIT
+    // =====================================================
+
+    const {
+      data: deposit,
+      error: depositError,
+    } = await supabase
+      .from('deposits')
+      .insert({
+        user_id:
+          user.id,
+
+        amount:
+          amount,
+
+        method_id:
+          methodId,
+
+        shared_plan_id:
+          plan.id,
+
+        status:
+          'pending',
+
+        created_at:
+          now.toISOString(),
+
+        updated_at:
+          now.toISOString(),
+      })
+      .select()
+      .single()
+
+    if (
+      depositError ||
+      !deposit
+    ) {
+      console.error(
+        'DEPOSIT CREATE ERROR:',
+        depositError
+      )
+
+      // Roll back the pending plan.
+      await supabase
+        .from('shared_plans')
+        .delete()
         .eq(
-          'user_id',
-          user.id
+          'id',
+          plan.id
         )
 
       return NextResponse.json(
         {
           error:
-            shareError.message,
+            depositError?.message ||
+            'Failed to create deposit.',
         },
         {
-          status:500
+          status: 500,
         }
       )
     }
 
-    // ================= TRANSACTION =================
+    console.log(
+      'PENDING DEPOSIT CREATED:',
+      deposit.id
+    )
+
+    // =====================================================
+    // CREATE PENDING TRANSACTION
+    // =====================================================
+
     const {
-  data: txData,
-  error: txError
-} = await supabase
-.from('transactions')
-.insert({
+      data: transaction,
+      error: transactionError,
+    } = await supabase
+      .from('transactions')
+      .insert({
+        user_id:
+          user.id,
 
-   user_id:user.id,
+        type:
+          'shared_plan',
 
-   type:'shared_plan',
+        amount:
+          amount,
 
-   amount:amount,
+        status:
+          'pending',
 
-   status:'completed',
+        description:
+          `Share Plan investment of $${amount} submitted for approval`,
 
-   description:
-   `Purchased company shares worth $${amount}`,
+          reference_id:
+           deposit.id,
 
-   created_at: now.toISOString()
+        created_at:
+          now.toISOString(),
+      })
+      .select()
+      .single()
 
-})
-.select()
-.single()
+    if (
+      transactionError
+    ) {
+      console.error(
+        'TRANSACTION CREATE ERROR:',
+        transactionError
+      )
 
-console.log(
-'TRANSACTION:',
-txData
-)
+      // Roll back deposit.
+      await supabase
+        .from('deposits')
+        .delete()
+        .eq(
+          'id',
+          deposit.id
+        )
 
-if(txError){
+      // Roll back plan.
+      await supabase
+        .from('shared_plans')
+        .delete()
+        .eq(
+          'id',
+          plan.id
+        )
 
-console.error(
-'TX ERROR:',
-txError
-)
+      return NextResponse.json(
+        {
+          error:
+            transactionError.message,
+        },
+        {
+          status: 500,
+        }
+      )
+    }
 
-}
+    console.log(
+      'PENDING SHARE PLAN TRANSACTION:',
+      transaction.id
+    )
+
+    // =====================================================
+    // SUCCESS
+    //
+    // IMPORTANT:
+    // No balance.cash is changed here.
+    //
+    // The money stays outside the user's account balance
+    // until the admin approves the deposit.
+    // =====================================================
 
     return NextResponse.json({
-      success:true,
+      success:
+        true,
 
-      balance:
-        newCash,
+      message:
+        'Share Plan deposit submitted successfully and is waiting for admin approval.',
 
-      shares:
-        newShares,
+      deposit,
 
       investment:
         plan,
     })
-
-  } catch (err:any) {
-
+  } catch (err: unknown) {
     console.error(
-      'SHARED PLAN ERROR:',
+      'SHARED PLAN BUY ERROR:',
       err
     )
+
+    const message =
+      err instanceof Error
+        ? err.message
+        : 'Server error'
 
     return NextResponse.json(
       {
         error:
-          err.message ||
-          'Server error',
+          message,
       },
       {
-        status:500,
+        status: 500,
       }
     )
   }

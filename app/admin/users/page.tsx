@@ -6,6 +6,7 @@ import UserActions from '@/components/admin/UserActions'
 
 type User = {
   id: string
+  username?: string | null
   email: string
   status: string
   is_admin?: boolean
@@ -271,7 +272,7 @@ async function fetchstats(userId: string) {
   // ================= FILTER USERS =================
   const filteredUsers = users.filter((user) => {
     const value =
-      `${user.email} ${user.status}`
+      `${user.username ?? ''} ${user.email} ${user.status}`
         .toLowerCase()
 
     return value.includes(
@@ -365,7 +366,7 @@ async function fetchstats(userId: string) {
                   >
 
                     <td className="p-3 md:p-5 whitespace-nowrap">
-  {user.email?.split('@')[0]}
+  {user.username || 'No username'}
 </td>
 
 <td className="p-3 md:p-5 whitespace-nowrap">
@@ -503,29 +504,39 @@ async function fetchstats(userId: string) {
                   User Information
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
 
-                  <div>
-                    <p className="text-zinc-400 break-all">
-                      Email
-                    </p>
+  <div>
+    <p className="text-zinc-400">
+      Username
+    </p>
 
-                    <p className="mt-1">
-                      {selectedUser.email}
-                    </p>
-                  </div>
+    <p className="mt-1">
+      {selectedUser.username || 'No username'}
+    </p>
+  </div>
 
-                  <div>
-                    <p className="text-zinc-400">
-                      Status
-                    </p>
+  <div>
+    <p className="text-zinc-400 break-all">
+      Email
+    </p>
 
-                    <p className="mt-1 text-emerald-400">
-                      {selectedUser.status}
-                    </p>
-                  </div>
+    <p className="mt-1">
+      {selectedUser.email}
+    </p>
+  </div>
 
-                </div>
+  <div>
+    <p className="text-zinc-400">
+      Status
+    </p>
+
+    <p className="mt-1 text-emerald-400">
+      {selectedUser.status}
+    </p>
+  </div>
+
+</div>
 
               </div>
 

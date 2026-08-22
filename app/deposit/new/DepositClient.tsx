@@ -1,124 +1,395 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
+import { useState } from 'react'
 
-export default function DepositClient({ methods }: any) {
-  const [amount, setAmount] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState('');
+interface PaymentMethod {
+  id: string
+  name: string
+  type: string
+   details: unknown
+}
+
+interface DepositClientProps {
+  methods: PaymentMethod[]
+}
+
+export default function DepositClient({
+  methods,
+}: DepositClientProps) {
+  const [amount, setAmount] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const [selectedMethod, setSelectedMethod] =
+    useState<PaymentMethod | null>(
+      methods[0] || null
+    )
+
+  const [txid, setTxid] = useState('')
+  const [copied, setCopied] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  const walletDetails = selectedMethod
+    ? typeof selectedMethod.details === 'string'
+      ? selectedMethod.details
+      : JSON.stringify(
+          selectedMethod.details
+        )
+    : ''
+
+  async function copyWallet() {
+    if (!walletDetails) return
+
+    await navigator.clipboard.writeText(
+      walletDetails
+    )
+
+    setCopied(true)
+
+    setTimeout(() => {
+      setCopied(false)
+    }, 2000)
+  }
+
+  async function submitDeposit() {
+    if (loading) return
+
+    setError('')
+    setMessage('')
+
+    if (!amount || Number(amount) <= 0) {
+      setError(
+        'Please enter a valid deposit amount.'
+      )
+      return
+    }
+
+    if (!selectedMethod) {
+      setError(
+        'Please select a payment method.'
+      )
+      return
+    }
+
+    if (!txid.trim()) {
+      setError(
+        'Please enter your transaction hash (TXID).'
+      )
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const res = await fetch(
+        '/api/deposit/create',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+          body: JSON.stringify({
+            amount: Number(amount),
+            method_id:
+              selectedMethod.id,
+            txid: txid.trim(),
+          }),
+        }
+      )
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(
+          data.error ||
+            'Failed to submit deposit.'
+        )
+
+        setLoading(false)
+        return
+      }
+
+      setMessage(
+        'Deposit submitted successfully and is waiting for admin approval.'
+      )
+
+      setAmount('')
+      setTxid('')
+
+    } catch (err) {
+      console.error(
+        'DEPOSIT SUBMIT ERROR:',
+        err
+      )
+
+      setError(
+        'Something went wrong. Please try again.'
+      )
+    }
+
+    setLoading(false)
+  }
+
+  if (!methods.length) {
+    return (
+      <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-10 text-center">
+        <p className="text-zinc-400">
+          No payment methods are available yet.
+        </p>
+      </div>
+    )
+  }
 
   return (
-    <div>
+    <div className="space-y-6">
 
-      {/* 💰 AMOUNT INPUT */}
-      <div className="bg-zinc-900 p-4 sm:p-6 rounded-2xl mb-8">
-        <label className="text-sm text-zinc-400">Deposit Amount</label>
+      {/* ================= AMOUNT ================= */}
+
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6">
+
+        <label className="text-sm text-zinc-400">
+          Deposit Amount
+        </label>
 
         <input
           type="number"
+          min="1"
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onChange={(event) =>
+            setAmount(event.target.value)
+          }
           placeholder="Enter amount"
-          className="mt-2 w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-white outline-none focus:border-yellow-500"
+          className="
+            mt-2
+            h-12
+            w-full
+            rounded-xl
+            border
+            border-zinc-700
+            bg-black
+            px-4
+            text-white
+            outline-none
+            focus:border-yellow-400
+          "
         />
+
       </div>
 
-      {/* WALLET METHODS */}
-      {methods && methods.length > 0 ? (
-        <div className="space-y-6">
+      {/* ================= PAYMENT DETAILS ================= */}
 
-          {methods.map((m: any) => (
-            <div
-              key={m.id}
-              className="bg-zinc-900 p-4 sm:p-6 rounded-2xl border border-zinc-800"
+      {selectedMethod && (
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6 space-y-6">
+
+          <div>
+
+            <h2 className="text-2xl font-bold text-white">
+              Payment Details
+            </h2>
+
+            <p className="mt-2 text-sm text-zinc-400">
+              Send exactly
+              <span className="ml-1 font-semibold text-yellow-400">
+                $
+                {Number(
+                  amount || 0
+                ).toLocaleString()}
+              </span>
+              {' '}using the wallet below.
+            </p>
+
+          </div>
+
+          {/* ================= PAYMENT METHOD SELECTOR ================= */}
+
+          <div>
+
+            <label
+              htmlFor="payment-method"
+              className="text-xs uppercase tracking-wide text-zinc-500"
+            >
+              Payment Method
+            </label>
+
+            <select
+              id="payment-method"
+              value={selectedMethod.id}
+              onChange={(event) => {
+
+                const method =
+                  methods.find(
+                    (item) =>
+                      item.id ===
+                      event.target.value
+                  )
+
+                if (method) {
+                  setSelectedMethod(
+                    method
+                  )
+
+                  setCopied(false)
+                  setError('')
+                }
+
+              }}
+              className="
+                mt-2
+                h-12
+                w-full
+                rounded-xl
+                border
+                border-zinc-700
+                bg-black
+                px-4
+                text-white
+                outline-none
+                focus:border-yellow-400
+              "
             >
 
-              {/* METHOD INFO */}
-              <h2 className="text-xl font-bold">{m.name}</h2>
-              <p className="text-zinc-400">{m.type}</p>
+              {methods.map(
+                (method) => (
+                  <option
+                    key={method.id}
+                    value={method.id}
+                    className="bg-zinc-900 text-white"
+                  >
+                    {method.name}
+                    {' '}
+                    ({method.type})
+                  </option>
+                )
+              )}
 
-              {/* WALLET DETAILS */}
-              <div className="mt-3 bg-zinc-800 p-3 rounded-lg text-sm break-all text-zinc-300">
-                {typeof m.details === 'object'
-                  ? JSON.stringify(m.details)
-                  : m.details}
-              </div>
+            </select>
 
-              {/* COPY BUTTON */}
-              <button
-                onClick={() => {
-                  const text =
-                    typeof m.details === 'object'
-                      ? JSON.stringify(m.details)
-                      : String(m.details);
+          </div>
 
-                  navigator.clipboard.writeText(text);
-                  alert('Wallet copied!');
-                }}
-                className="mt-4 bg-yellow-500 text-black px-4 py-2 rounded-lg font-semibold"
-              >
-                Copy Wallet
-              </button>
+          {/* ================= SELECTED METHOD ================= */}
 
-              {/* SELECT WALLET BUTTON */}
-              <button
-                onClick={() => setSelectedMethod(m.id)}
-                className={`mt-3 ml-3 px-4 py-2 rounded-lg font-semibold ${
-                  selectedMethod === m.id
-                    ? 'bg-green-500 text-black'
-                    : 'bg-zinc-700 text-white'
-                }`}
-              >
-                {selectedMethod === m.id ? 'Selected' : 'Select'}
-              </button>
+          <div>
 
+            <p className="text-xs uppercase tracking-wide text-zinc-500">
+              Network
+            </p>
+
+            <span className="mt-2 inline-flex rounded-full bg-yellow-500/20 px-3 py-1 text-sm text-yellow-400">
+              {selectedMethod.type}
+            </span>
+
+          </div>
+
+          {/* ================= WALLET ================= */}
+
+          <div>
+
+            <p className="text-xs uppercase tracking-wide text-zinc-500">
+              Wallet Address
+            </p>
+
+            <div className="mt-2 break-all rounded-xl bg-black/40 p-4 text-sm text-white">
+              {walletDetails}
             </div>
-          ))}
 
-          {/* SUBMIT DEPOSIT BUTTON */}
+          </div>
+
+          {/* ================= COPY ================= */}
+
           <button
-            disabled={!amount || !selectedMethod || loading}
-            onClick={async () => {
-              setLoading(true);
-
-              const res = await fetch('/api/deposit/create', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  amount: Number(amount),
-                  method_id: selectedMethod,
-                }),
-              });
-
-              const data = await res.json();
-
-              setLoading(false);
-
-              if (data.success) {
-                alert('Deposit submitted successfully');
-
-                setAmount('');
-                setSelectedMethod('');
-              } else {
-                alert(data.error || 'Failed to submit deposit');
-              }
-            }}
-            className="w-full mt-10 bg-green-500 text-black py-3 rounded-xl font-bold disabled:opacity-50"
+            type="button"
+            onClick={copyWallet}
+            className="
+              rounded-xl
+              bg-yellow-400
+              px-5
+              py-3
+              font-semibold
+              text-black
+              transition
+              hover:bg-yellow-300
+            "
           >
-            {loading ? 'Processing...' : 'Submit Deposit'}
+            {copied
+              ? 'Copied!'
+              : 'Copy Address'}
           </button>
 
         </div>
-      ) : (
-        <div className="bg-zinc-900 p-10 text-center rounded-3xl">
-          <p className="text-zinc-400">
-            No payment methods available yet.
-          </p>
+      )}
+
+      {/* ================= TXID ================= */}
+
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6">
+
+        <label className="text-sm text-zinc-400">
+          Transaction Hash (TXID)
+        </label>
+
+        <input
+          value={txid}
+          onChange={(event) =>
+            setTxid(event.target.value)
+          }
+          placeholder="Paste your transaction hash"
+          className="
+            mt-2
+            h-12
+            w-full
+            rounded-xl
+            border
+            border-zinc-700
+            bg-black
+            px-4
+            text-white
+            outline-none
+            focus:border-yellow-400
+          "
+        />
+
+      </div>
+
+      {/* ================= ERROR ================= */}
+
+      {error && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
+          {error}
         </div>
       )}
 
+      {/* ================= SUCCESS ================= */}
+
+      {message && (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-400">
+          {message}
+        </div>
+      )}
+
+      {/* ================= SUBMIT ================= */}
+
+      <button
+        type="button"
+        onClick={submitDeposit}
+        disabled={loading}
+        className="
+          h-12
+          w-full
+          rounded-xl
+          bg-yellow-400
+          font-bold
+          text-black
+          transition
+          hover:bg-yellow-300
+          disabled:cursor-not-allowed
+          disabled:opacity-50
+        "
+      >
+        {loading
+          ? 'Submitting...'
+          : 'Submit Deposit'}
+      </button>
+
     </div>
-  );
+  )
 }

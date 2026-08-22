@@ -32,11 +32,22 @@ export async function POST(
     }
 
     // ✅ 2. GET USER BALANCE
-    const { data: balance } = await supabase
-      .from('balances')
-      .select('*')
-      .eq('user_id', deposit.user_id)
-      .maybeSingle()
+   if (!deposit.user_id) {
+  return NextResponse.json(
+    {
+      error: "Deposit has no associated user.",
+    },
+    {
+      status: 400,
+    }
+  );
+}
+
+const { data: balance } = await supabase
+  .from('balances')
+  .select('*')
+  .eq('user_id', deposit.user_id)
+  .maybeSingle();
 
     const amount = Number(deposit.amount)
 

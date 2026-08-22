@@ -14,6 +14,11 @@ export default function AdminLoginPage() {
         </p>
 
         <form action={loginAction}>
+  <input
+    type="hidden"
+    name="login_type"
+    value="admin"
+  />
           <input
             name="email"
             type="email"

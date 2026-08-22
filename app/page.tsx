@@ -12,6 +12,10 @@ import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
 import LiveTicker from "@/components/LiveTicker";
 import PaymentSecurity from "@/components/PaymentSecurity";
+import TeamMembers from "@/components/TeamMembers";
+import BlogPreview from "@/components/BlogPreview";
+import LiveChat from "@/components/LiveChat";
+import TradingBotPreview from "@/components/TradingBotPreview";
 
 export default function HomePage() {
   return (
@@ -31,17 +35,25 @@ export default function HomePage() {
 
       <PlansPreview />
 
+      <TradingBotPreview />
+
       <ReferralPreview />
 
       <SharedPlanPreview />
 
       <Testimonials />
 
+      <TeamMembers />
+
+      <BlogPreview />
+
       <CTA />
 
       <FaqPreview />
 
       <PaymentSecurity />
+      
+      <LiveChat />
 
 
       <Footer />
