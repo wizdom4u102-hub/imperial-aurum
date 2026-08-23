@@ -12,8 +12,7 @@ const adminDb = createAdminClient(
 )
 
 export default async function AdminDashboard() {
-  try {
-    console.log('================ ADMIN DASHBOARD ================')
+  console.log('================ ADMIN DASHBOARD ================')
 
 const { supabase } =
   await requireAdminPage()
@@ -357,24 +356,4 @@ const totalReferral =
         </div>
       </div>
     )
-
-  } catch (err: any) {
-
-  console.error('================ ERROR =================')
-  console.error(err)
-  console.error('MESSAGE:', err?.message)
-  console.error('STACK:', err?.stack)
-
-  return (
-    <div className="min-h-screen bg-black text-red-500 flex flex-col items-center justify-center">
-      <h1 className="text-2xl font-bold">
-        Admin Dashboard Error
-      </h1>
-
-      <p className="mt-4">
-        {err?.message || 'Unknown error'}
-      </p>
-    </div>
-  )
-}
 }
