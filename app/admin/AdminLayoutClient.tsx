@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect,  useCallback, useState } from 'react'
 import Link from 'next/link'
 import AdminPushNotifications from "@/components/admin/admin-push-notifications";
 
@@ -61,6 +61,45 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     window.clearInterval(interval)
   }
 }, [])
+
+  const handleAdminTimeout = useCallback(() => {
+    window.location.href = '/login/admin'
+  }, [])
+
+  useEffect(() => {
+    let timeout: number
+
+    const resetTimeout = () => {
+      window.clearTimeout(timeout)
+
+      timeout = window.setTimeout(() => {
+        handleAdminTimeout()
+      }, 5 * 60 * 1000)
+    }
+
+    const events = [
+      'mousedown',
+      'mousemove',
+      'keydown',
+      'scroll',
+      'touchstart',
+      'click',
+    ] as const
+
+    events.forEach((event) => {
+      window.addEventListener(event, resetTimeout)
+    })
+
+    resetTimeout()
+
+    return () => {
+      window.clearTimeout(timeout)
+
+      events.forEach((event) => {
+        window.removeEventListener(event, resetTimeout)
+      })
+    }
+  }, [handleAdminTimeout])
 
   const toggleMenu = (menu: string) => {
     setOpenMenus(prev => ({ ...prev, [menu]: !prev[menu] }))
