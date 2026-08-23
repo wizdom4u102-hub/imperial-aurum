@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import CookieBanner from "@/components/CookieBanner";
 import LanguageSelector from "@/components/LanguageSelector";
 import Script from "next/script";
 
@@ -22,7 +21,6 @@ export default function LayoutExtras() {
         <LanguageSelector />
       </div>
 
-      <CookieBanner />
     </>
   );
 }
