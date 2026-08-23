@@ -1,6 +1,5 @@
 import AppNavbar from "@/components/AppNavbar";
 import type { Metadata } from "next";
-import CookieBanner from "@/components/CookieBanner";
 import Script from "next/script";
 import LayoutExtras from "@/components/LayoutExtras";
 import "./globals.css";
@@ -75,7 +74,6 @@ export default function RootLayout({
           `}
         </Script>
 
-        <CookieBanner />
       </body>
     </html>
   );
