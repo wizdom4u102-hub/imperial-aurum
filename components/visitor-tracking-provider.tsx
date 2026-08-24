@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type {
+  AuthChangeEvent,
+  Session,
+} from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/client";
 import LiveChat from "@/components/live-chat/live-chat";
@@ -8,10 +12,9 @@ import { useVisitorTracking } from "@/hooks/use-visitor-tracking";
 
 export default function VisitorTrackingProvider() {
   const [userId, setUserId] = useState<string | null>(null);
+  const supabase = createClient();
 
   useEffect(() => {
-    const supabase = createClient();
-
     let mounted = true;
 
     async function loadInitialUser(): Promise<void> {
@@ -35,7 +38,10 @@ export default function VisitorTrackingProvider() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (
+        _event: AuthChangeEvent,
+        session: Session | null,
+      ) => {
         if (!mounted) {
           return;
         }
@@ -48,7 +54,7 @@ export default function VisitorTrackingProvider() {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase]);
 
   const visitorTracking = useVisitorTracking(userId);
 

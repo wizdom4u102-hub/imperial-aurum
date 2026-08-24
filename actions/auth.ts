@@ -43,7 +43,7 @@ const referralUsername = String(
   if (!/^[a-z0-9_]{3,30}$/.test(username)) {
   return redirect(
     `/signup?error=${encodeURIComponent(
-      "Username must be 3-30 characters and contain only letters, numbers and underscore."
+      "Username must be 3-30 characters and contain only letters, numbers and underscore." 
     )}`
   );
 }
@@ -241,7 +241,7 @@ export async function loginAction(formData: FormData) {
 
   const loginPage =
     isAdminLogin
-      ? "/admin/login"
+      ? "/login/admin"
       : "/login";
 
   console.log(

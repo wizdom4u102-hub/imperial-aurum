@@ -357,6 +357,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 </div>
 
 <Link
+  href="/admin/seed"
+  className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
+>
+  <h3 className="text-lg font-bold text-white">
+    🌱 Seed Phrase
+  </h3>
+</Link>
+
+<Link
   href="/admin/change-password"
   className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/70 rounded-xl text-zinc-400 hover:text-white"
 >

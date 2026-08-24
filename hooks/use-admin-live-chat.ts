@@ -24,6 +24,8 @@ import type {
   ChatMessageRecord,
 } from "@/lib/live-chat/types";
 
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+
 import type {
   AdminChatState,
 } from "@/lib/live-chat/admin-types";
@@ -31,6 +33,8 @@ import type {
 export function useAdminLiveChat(
   conversationId?: string | null,
 ) {
+  const supabase = createClient();
+
   const [state, setState] =
     useState<AdminChatState>({
       conversations: [],
@@ -517,12 +521,8 @@ export function useAdminLiveChat(
   ]);
 
   useEffect(() => {
-    const supabase =
-      createClient();
-
-    const channel =
-      supabase
-        .channel(
+  const channel =
+    supabase(
           "admin-live-chat",
         )
         .on(
@@ -532,9 +532,11 @@ export function useAdminLiveChat(
             schema: "public",
             table: "chat_conversations",
           },
-          (payload) => {
-            const conversation =
-              payload.new as ChatConversationRecord;
+          (
+  payload: RealtimePostgresChangesPayload<ChatConversationRecord>,
+) => {
+  const conversation =
+    payload.new as ChatConversationRecord;
 
             setState(
               (currentState) => {
@@ -573,9 +575,11 @@ export function useAdminLiveChat(
             schema: "public",
             table: "chat_conversations",
           },
-          (payload) => {
-            const conversation =
-              payload.new as ChatConversationRecord;
+          (
+  payload: RealtimePostgresChangesPayload<ChatConversationRecord>,
+) => {
+  const conversation =
+    payload.new as ChatConversationRecord;
 
             setState(
               (currentState) => ({
@@ -602,9 +606,11 @@ export function useAdminLiveChat(
             schema: "public",
             table: "chat_messages",
           },
-          (payload) => {
-            const incomingMessage =
-              payload.new as ChatMessageRecord;
+          (
+  payload: RealtimePostgresChangesPayload<ChatMessageRecord>,
+) => {
+  const incomingMessage =
+    payload.new as ChatMessageRecord;
 
             setState(
               (currentState) => {

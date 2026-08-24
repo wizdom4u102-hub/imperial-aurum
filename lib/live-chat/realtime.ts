@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase/client";
 
 import type {
+  RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
+
+import type {
   ChatMessage,
   ChatMessageRecord,
 } from "./types";
@@ -43,7 +47,9 @@ export function subscribeToChatMessages(
         filter:
           `conversation_id=eq.${conversationId}`,
       },
-      (payload) => {
+      (
+        payload: RealtimePostgresChangesPayload<ChatMessageRecord>,
+      ) => {
         const record =
           payload.new as ChatMessageRecord;
 
