@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import type {
   AuthChangeEvent,
   Session,
@@ -11,6 +12,7 @@ import LiveChat from "@/components/live-chat/live-chat";
 import { useVisitorTracking } from "@/hooks/use-visitor-tracking";
 
 export default function VisitorTrackingProvider() {
+  const pathname = usePathname();
   const [userId, setUserId] = useState<string | null>(null);
   const supabase = createClient();
 
@@ -57,6 +59,14 @@ export default function VisitorTrackingProvider() {
   }, [supabase]);
 
   const visitorTracking = useVisitorTracking(userId);
+
+  const isAdminArea =
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/login/admin");
+
+  if (isAdminArea) {
+    return null;
+  }
 
   return (
     <>

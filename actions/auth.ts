@@ -340,10 +340,10 @@ export async function loginAction(formData: FormData) {
       await supabase.auth.signOut();
 
       return redirect(
-        `/admin/login?error=${encodeURIComponent(
-          "This is the Admin Login page. Your account does not have administrator access. Please use the User Login page."
-        )}`
-      );
+  `/login/admin?error=${encodeURIComponent(
+    "This is the Admin Login page. Your account does not have administrator access. Please use the User Login page."
+  )}`
+);
 
     }
 
