@@ -522,9 +522,9 @@ export function useAdminLiveChat(
 
   useEffect(() => {
   const channel =
-    supabase(
-          "admin-live-chat",
-        )
+  supabase.channel(
+    "admin-live-chat",
+     )
         .on(
           "postgres_changes",
           {
