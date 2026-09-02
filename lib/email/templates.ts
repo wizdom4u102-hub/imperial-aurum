@@ -425,12 +425,13 @@ export function depositRejectedEmail(
 ================================ */
 
 export function withdrawalSubmittedEmail(
-  amount: number
+  amount: number,
+  username: string
 ) {
   return emailLayout(
     "Withdrawal Request Received",
     `
-      <p>Hello Investor,</p>
+      <p>Hello <strong>${username}</strong>,</p>
 
       <p>
         We have successfully received your withdrawal request.
@@ -478,12 +479,13 @@ export function withdrawalSubmittedEmail(
 ================================ */
 
 export function withdrawalApprovedEmail(
-  amount: number
+  amount: number,
+  username: string
 ) {
   return emailLayout(
     "Withdrawal Approved",
     `
-      <p>Hello Investor,</p>
+      <p>Hello <strong>${username}</strong>,</p>
 
       <p>
         Your withdrawal request has been
@@ -529,12 +531,13 @@ export function withdrawalApprovedEmail(
 ================================ */
 
 export function withdrawalRejectedEmail(
-  amount: number
+  amount: number,
+  username: string
 ) {
   return emailLayout(
     "Withdrawal Request Rejected",
     `
-      <p>Hello Investor,</p>
+      <p>Hello <strong>${username}</strong>,</p>
 
       <p>
         Unfortunately, your withdrawal request
@@ -579,14 +582,16 @@ export function withdrawalRejectedEmail(
    REFERRAL BONUS
 ================================ */
 export function referralSignupBonusEmail({
-  newUserEmail,
+  name,
+  newUserName,
 }: {
-  newUserEmail: string;
+  name: string;
+  newUserName: string;
 }) {
   return emailLayout(
     "🎉 New Referral Joined",
     `
-      <p>Hello Investor,</p>
+      <p>Hello <strong>${name}</strong>,</p>
 
       <p>
         Great news! A new investor has successfully registered using your
@@ -603,7 +608,7 @@ export function referralSignupBonusEmail({
         "
       >
         <strong>New Referral</strong><br>
-        ${newUserEmail}
+         ${newUserName}
       </div>
 
       <div
@@ -639,16 +644,18 @@ export function referralCommissionEmail({
   depositAmount,
   commissionPercent,
   commissionAmount,
+  username,
 }: {
   level: number;
   depositAmount: number;
   commissionPercent: number;
   commissionAmount: number;
+  username: string;
 }) {
   return emailLayout(
     "Referral Commission Credited",
     `
-      <p>Hello Investor,</p>
+      <p>Hello <strong>${username}</strong>,</p>
 
       <p>
         One of the investors in your referral network has completed
@@ -715,15 +722,17 @@ export function botProfitTransferEmail({
   botName,
   amount,
   remainingBalance,
+  username,
 }: {
   botName: string;
   amount: number;
   remainingBalance: number;
+  username: string;
 }) {
   return emailLayout(
     "Bot Profit Transfer Successful",
     `
-      <p>Hello Investor,</p>
+      <p>Hello <strong>${username}</strong>,</p>
 
       <p>
         Your profit transfer has been completed successfully.
@@ -800,171 +809,90 @@ export function dashboardProfitTransferEmail({
   amount: number;
   remainingBalance: number;
 }) {
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<title>Trading Bot Funds Transferred</title>
-</head>
+  return emailLayout(
+    "Funds Successfully Transferred",
+    `
+      <p>Hello <strong>${name}</strong>,</p>
 
-<body style="margin:0;padding:0;background:#050816;font-family:Arial,Helvetica,sans-serif;">
+      <p>
+        Your trading bot profit transfer has been completed successfully.
+        The requested funds have been transferred from your available
+        trading bot balance to your dashboard cash balance.
+      </p>
 
-<table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
-<tr>
-<td align="center">
+      <table
+        width="100%"
+        cellpadding="12"
+        cellspacing="0"
+        style="
+          background:#27272a;
+          border-radius:10px;
+          margin:25px 0;
+          color:#ffffff;
+        "
+      >
+        <tr>
+          <td style="color:#a1a1aa;">
+            Transferred Amount
+          </td>
 
-<table
-width="620"
-cellpadding="0"
-cellspacing="0"
-style="
-background:#0b1020;
-border:1px solid rgba(255,255,255,.08);
-border-radius:16px;
-overflow:hidden;
-">
+          <td
+            align="right"
+            style="color:#22c55e;font-weight:bold;"
+          >
+            $${amount.toFixed(2)}
+          </td>
+        </tr>
 
-<tr>
-<td
-style="
-padding:35px;
-text-align:center;
-background:linear-gradient(90deg,#D4AF37,#F6D365);
-color:#000;
-font-size:28px;
-font-weight:bold;
-"
->
-Imperial Aurum
-</td>
-</tr>
+        <tr>
+          <td style="color:#a1a1aa;">
+            Remaining Bot Balance
+          </td>
 
-<tr>
-<td style="padding:40px; color:#ffffff;">
+          <td
+            align="right"
+            style="color:#ffffff;font-weight:bold;"
+          >
+            $${remainingBalance.toFixed(2)}
+          </td>
+        </tr>
 
-<h2 style="margin-top:0;">
-Funds Successfully Transferred
-</h2>
+        <tr>
+          <td style="color:#a1a1aa;">
+            Destination
+          </td>
 
-<p style="color:#cbd5e1;font-size:16px;line-height:28px;">
-Hello <strong>${name}</strong>,
-</p>
+          <td
+            align="right"
+            style="color:#ffffff;font-weight:bold;"
+          >
+            Dashboard Cash Balance
+          </td>
+        </tr>
 
-<p style="color:#cbd5e1;font-size:16px;line-height:28px;">
-Your trading bot profit transfer has been completed successfully.
-The requested funds have been transferred from your available trading bot balance to your dashboard cash balance.
-</p>
+        <tr>
+          <td style="color:#a1a1aa;">
+            Status
+          </td>
 
-<table
-width="100%"
-cellpadding="12"
-style="
-margin:30px 0;
-background:#111827;
-border-radius:12px;
-"
->
+          <td
+            align="right"
+            style="color:#22c55e;font-weight:bold;"
+          >
+            Completed
+          </td>
+        </tr>
+      </table>
 
-<tr>
-<td style="color:#94a3b8;">
-Transferred Amount
-</td>
+      <p>
+        Your dashboard balance has been updated immediately and is now
+        available for withdrawal or reinvestment.
+      </p>
 
-<td
-align="right"
-style="
-color:#22c55e;
-font-weight:bold;
-"
->
-$${amount.toFixed(2)}
-</td>
-</tr>
-
-<tr>
-<td style="color:#94a3b8;">
-Remaining Bot Balance
-</td>
-
-<td
-align="right"
-style="
-color:#ffffff;
-font-weight:bold;
-"
->
-$${remainingBalance.toFixed(2)}
-</td>
-</tr>
-
-<tr>
-<td style="color:#94a3b8;">
-Destination
-</td>
-
-<td
-align="right"
-style="
-color:#ffffff;
-font-weight:bold;
-"
->
-Dashboard Cash Balance
-</td>
-</tr>
-
-<tr>
-<td style="color:#94a3b8;">
-Status
-</td>
-
-<td
-align="right"
-style="
-color:#22c55e;
-font-weight:bold;
-"
->
-Completed
-</td>
-</tr>
-
-</table>
-
-<p style="color:#cbd5e1;font-size:16px;line-height:28px;">
-Your dashboard balance has been updated immediately and is now available for withdrawal or reinvestment.
-</p>
-
-<p style="margin-top:35px;color:#cbd5e1;">
-Thank you for choosing
-<strong>Imperial Aurum.</strong>
-</p>
-
-</td>
-</tr>
-
-<tr>
-<td
-style="
-padding:20px;
-text-align:center;
-font-size:13px;
-color:#94a3b8;
-border-top:1px solid rgba(255,255,255,.08);
-"
->
-© ${new Date().getFullYear()} Imperial Aurum. All rights reserved.
-</td>
-</tr>
-
-</table>
-
-</td>
-</tr>
-</table>
-
-</body>
-</html>
-`;
+      <p>
+        Thank you for choosing
+        <strong>Imperial Aurum Mining.</strong>
+      </p>
+    `
+  );
 }

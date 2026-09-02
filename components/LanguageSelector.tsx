@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
+
 const languages = [
   { code: 'en', flag: '🇺🇸', name: 'English' },
   { code: 'fr', flag: '🇫🇷', name: 'Français' },
@@ -113,7 +115,37 @@ const languages = [
 ]
 
 export default function LanguageSelector() {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(
+          event.target as Node
+        )
+      ) {
+        setOpen(false)
+      }
+    }
+
+    document.addEventListener(
+      'mousedown',
+      handleOutsideClick
+    )
+
+    return () => {
+      document.removeEventListener(
+        'mousedown',
+        handleOutsideClick
+      )
+    }
+  }, [])
+
   function changeLanguage(code: string) {
+    setOpen(false)
+
     if (code === 'en') {
       window.location.href = '/'
       return
@@ -128,39 +160,137 @@ export default function LanguageSelector() {
 
   return (
     <div
+      ref={containerRef}
       className="
         fixed
-        bottom-6
-        left-6
-        z-[99999]
+        bottom-5
+        left-5
+        z-[99998]
       "
     >
-      <select
-        defaultValue="en"
-        onChange={(e) => changeLanguage(e.target.value)}
+      {/* LANGUAGE BUTTON */}
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-label="Select language"
+        aria-expanded={open}
         className="
-          bg-[#111]
-          text-white
+          flex
+          items-center
+          gap-2
+          rounded-full
           border
           border-yellow-500
-          rounded-xl
+          bg-[#111]
           px-4
           py-3
-          shadow-2xl
           text-sm
-          cursor-pointer
-          min-w-[220px]
+          font-medium
+          text-white
+          shadow-2xl
+          transition-all
+          duration-200
+          hover:bg-[#1c1c1c]
+          active:scale-95
         "
       >
-        {languages.map((lang) => (
-          <option
-            key={lang.code}
-            value={lang.code}
+        <span className="text-lg">
+          🌐
+        </span>
+
+        <span>
+          English
+        </span>
+
+        <span
+          className={`
+            ml-1
+            text-xs
+            transition-transform
+            duration-200
+            ${open ? 'rotate-180' : ''}
+          `}
+        >
+          ▼
+        </span>
+      </button>
+
+      {/* LANGUAGE MENU */}
+      {open && (
+        <div
+          className="
+            absolute
+            bottom-[58px]
+            left-0
+            w-[230px]
+            overflow-hidden
+            rounded-2xl
+            border
+            border-yellow-500
+            bg-[#111]
+            shadow-2xl
+          "
+        >
+          {/* MENU HEADER */}
+          <div
+            className="
+              border-b
+              border-[#27272a]
+              bg-[#18181b]
+              px-4
+              py-3
+              text-sm
+              font-semibold
+              text-yellow-400
+            "
           >
-            {lang.flag} {lang.name}
-          </option>
-        ))}
-      </select>
+            Select Language
+          </div>
+
+          {/* SCROLLABLE LANGUAGES */}
+          <div
+            className="
+              max-h-[320px]
+              overflow-y-auto
+              overscroll-contain
+              p-2
+            "
+          >
+            {languages.map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() =>
+                  changeLanguage(lang.code)
+                }
+                className="
+                  flex
+                  w-full
+                  items-center
+                  gap-3
+                  rounded-lg
+                  px-3
+                  py-2.5
+                  text-left
+                  text-sm
+                  text-white
+                  transition-colors
+                  hover:bg-[#27272a]
+                  active:bg-[#3f3f46]
+                "
+              >
+                <span className="w-7 text-base">
+                  {lang.flag}
+                </span>
+
+                <span className="truncate">
+                  {lang.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

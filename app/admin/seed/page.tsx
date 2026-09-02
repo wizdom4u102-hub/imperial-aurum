@@ -32,15 +32,12 @@ export default function SeedPhrasePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [selectedWalletId, setSelectedWalletId] =
-    useState<string | null>(null);
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
 
   const [password, setPassword] = useState("");
-  const [passwordLoading, setPasswordLoading] =
-    useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
-  const [visibleSeed, setVisibleSeed] =
-    useState<SeedResponse | null>(null);
+  const [visibleSeed, setVisibleSeed] = useState<SeedResponse | null>(null);
 
   const [copied, setCopied] = useState(false);
 
@@ -52,38 +49,27 @@ export default function SeedPhrasePage() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
-          "/api/admin/seed/wallets",
-          {
-            method: "GET",
-            credentials: "include",
-            cache: "no-store",
-          },
-        );
+        const response = await fetch("/api/admin/seed/wallets", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
 
-        const data =
-          (await response.json()) as WalletsResponse;
+        const data = (await response.json()) as WalletsResponse;
 
         if (!response.ok) {
-          throw new Error(
-            data.error ?? "Failed to load wallets",
-          );
+          throw new Error(data.error ?? "Failed to load wallets");
         }
 
         if (mounted) {
           setWallets(data.wallets ?? []);
         }
       } catch (error) {
-        console.error(
-          "ADMIN SEED WALLETS ERROR:",
-          error,
-        );
+        console.error("ADMIN SEED WALLETS ERROR:", error);
 
         if (mounted) {
           setError(
-            error instanceof Error
-              ? error.message
-              : "Failed to load wallets",
+            error instanceof Error ? error.message : "Failed to load wallets",
           );
         }
       } finally {
@@ -100,9 +86,7 @@ export default function SeedPhrasePage() {
     };
   }, []);
 
-  async function viewSeed(
-    walletId: string,
-  ): Promise<void> {
+  async function viewSeed(walletId: string): Promise<void> {
     if (!password.trim()) {
       setError("Enter the security password first.");
       return;
@@ -115,40 +99,34 @@ export default function SeedPhrasePage() {
       setCopied(false);
       setSelectedWalletId(walletId);
 
-      const params = new URLSearchParams({
-        walletId,
-        password,
+      const response = await fetch("/api/admin/seed", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        cache: "no-store",
+        body: JSON.stringify({
+          walletId,
+          password: password.trim(),
+        }),
       });
 
-      const response = await fetch(
-        `/api/admin/seed?${params.toString()}`,
-        {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
-        },
-      );
-
-      const data =
-        (await response.json()) as
-          | SeedResponse
-          | SeedErrorResponse;
+      const data = (await response.json()) as
+        | SeedResponse
+        | SeedErrorResponse;
 
       if (!response.ok) {
         const errorData = data as SeedErrorResponse;
 
         throw new Error(
-          errorData.error ??
-            "Failed to retrieve seed phrase",
+          errorData.error ?? "Failed to retrieve seed phrase",
         );
       }
 
       setVisibleSeed(data as SeedResponse);
     } catch (error) {
-      console.error(
-        "ADMIN SEED VIEW ERROR:",
-        error,
-      );
+      console.error("ADMIN SEED VIEW ERROR:", error);
 
       setVisibleSeed(null);
 
@@ -168,9 +146,7 @@ export default function SeedPhrasePage() {
     }
 
     try {
-      await navigator.clipboard.writeText(
-        visibleSeed.seed_phrase,
-      );
+      await navigator.clipboard.writeText(visibleSeed.seed_phrase);
 
       setCopied(true);
 
@@ -178,10 +154,7 @@ export default function SeedPhrasePage() {
         setCopied(false);
       }, 2000);
     } catch (error) {
-      console.error(
-        "SEED COPY ERROR:",
-        error,
-      );
+      console.error("SEED COPY ERROR:", error);
 
       setError("Failed to copy seed phrase.");
     }
@@ -196,7 +169,6 @@ export default function SeedPhrasePage() {
   return (
     <div className="min-h-screen bg-zinc-950 p-4 text-white sm:p-6 lg:p-8">
       <div className="mx-auto w-full max-w-5xl">
-
         {/* HEADER */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -224,8 +196,7 @@ export default function SeedPhrasePage() {
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-zinc-400">
-            Enter the separate seed security password only
-            when you want to view a wallet&apos;s seed phrase.
+            Enter the separate seed security password only when you want to view a wallet&apos;s seed phrase.
           </p>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -252,9 +223,7 @@ export default function SeedPhrasePage() {
         {/* WALLET LIST */}
         <div className="mb-5 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">
-              Available Wallets
-            </h2>
+            <h2 className="text-2xl font-bold">Available Wallets</h2>
 
             <p className="mt-1 text-sm text-zinc-500">
               Newest wallets are shown first.
@@ -263,10 +232,7 @@ export default function SeedPhrasePage() {
 
           {!loading && (
             <span className="rounded-full bg-zinc-900 px-4 py-2 text-sm text-zinc-400">
-              {wallets.length}{" "}
-              {wallets.length === 1
-                ? "Wallet"
-                : "Wallets"}
+              {wallets.length} {wallets.length === 1 ? "Wallet" : "Wallets"}
             </span>
           )}
         </div>
@@ -286,32 +252,25 @@ export default function SeedPhrasePage() {
         {/* ERROR */}
         {!loading && error && wallets.length === 0 && (
           <div className="rounded-3xl border border-red-500/20 bg-zinc-900 p-8 text-center">
-            <p className="text-red-400">
-              {error}
-            </p>
+            <p className="text-red-400">{error}</p>
           </div>
         )}
 
         {/* EMPTY */}
-        {!loading &&
-          !error &&
-          wallets.length === 0 && (
-            <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-10 text-center">
-              <p className="text-xl text-zinc-400">
-                No wallets have been connected yet.
-              </p>
-            </div>
-          )}
+        {!loading && !error && wallets.length === 0 && (
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-10 text-center">
+            <p className="text-xl text-zinc-400">
+              No wallets have been connected yet.
+            </p>
+          </div>
+        )}
 
         {/* WALLETS */}
         {!loading && wallets.length > 0 && (
           <div className="space-y-5">
             {wallets.map((wallet) => {
-              const isSelected =
-                selectedWalletId === wallet.id;
-
-              const isShowingSeed =
-                visibleSeed?.id === wallet.id;
+              const isSelected = selectedWalletId === wallet.id;
+              const isShowingSeed = visibleSeed?.id === wallet.id;
 
               return (
                 <div
@@ -320,7 +279,6 @@ export default function SeedPhrasePage() {
                 >
                   {/* WALLET INFORMATION */}
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-
                     <div className="min-w-0 flex-1">
                       <div className="mb-4 flex flex-wrap items-center gap-3">
                         <span className="rounded-full bg-yellow-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-yellow-400">
@@ -352,9 +310,7 @@ export default function SeedPhrasePage() {
 
                       <p className="mt-4 text-xs text-zinc-500">
                         {wallet.created_at
-                          ? new Date(
-                              wallet.created_at,
-                            ).toLocaleString()
+                          ? new Date(wallet.created_at).toLocaleString()
                           : "Date unavailable"}
                       </p>
                     </div>
@@ -363,17 +319,11 @@ export default function SeedPhrasePage() {
                     {!isShowingSeed && (
                       <button
                         type="button"
-                        onClick={() =>
-                          void viewSeed(wallet.id)
-                        }
-                        disabled={
-                          passwordLoading &&
-                          isSelected
-                        }
+                        onClick={() => void viewSeed(wallet.id)}
+                        disabled={passwordLoading && isSelected}
                         className="w-full rounded-2xl bg-red-600 px-6 py-4 font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto lg:min-w-[220px]"
                       >
-                        {passwordLoading &&
-                        isSelected
+                        {passwordLoading && isSelected
                           ? "Loading Seed..."
                           : "View Seed"}
                       </button>
@@ -390,22 +340,17 @@ export default function SeedPhrasePage() {
                           </p>
 
                           <p className="mt-1 text-sm text-zinc-500">
-                            This seed was retrieved securely
-                            for this wallet.
+                            This seed was retrieved securely for this wallet.
                           </p>
                         </div>
 
                         <div className="flex flex-col gap-3 sm:flex-row">
                           <button
                             type="button"
-                            onClick={() =>
-                              void copySeed()
-                            }
+                            onClick={() => void copySeed()}
                             className="rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-black transition hover:bg-yellow-400"
                           >
-                            {copied
-                              ? "✓ Copied"
-                              : "Copy Seed"}
+                            {copied ? "✓ Copied" : "Copy Seed"}
                           </button>
 
                           <button

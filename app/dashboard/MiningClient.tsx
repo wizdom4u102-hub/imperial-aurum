@@ -34,12 +34,15 @@ export default function MiningClient({
   const supabase = createClient();
 
   const [timeLeft, setTimeLeft] = useState(0);
+const [isSessionActive, setIsSessionActive] = useState(
+  session?.active === true
+);
   const [balance, setBalance] = useState<Balance | null>(
     initialBalance
   );
   const [loading, setLoading] = useState(false);
-
   const BASE_DURATION = 24 * 60 * 60;
+
 
   // 🔐 ANTI-CHEAT CHECK
   const getDeviceKey = () => {
@@ -49,35 +52,45 @@ export default function MiningClient({
 
   // ⛏ OFFLINE PROGRESS TIMER
   useEffect(() => {
-    if (!session?.started_at) {
-      setTimeLeft(0);
-      return;
-    }
+  if (!session?.started_at || !session.ends_at) {
+    setTimeLeft(0);
+    setIsSessionActive(false);
+    return;
+  }
 
-    const updateTimer = () => {
-      const now = Date.now();
+  const updateTimer = () => {
+  const now = Date.now();
 
-      const end =
-        new Date(session.ends_at).getTime();
+  const cycleEnd =
+    new Date(
+      session.last_claim_at ||
+        session.started_at
+    ).getTime() +
+    BASE_DURATION * 1000;
 
-      const remaining =
-        Math.floor((end - now) / 1000);
-
-      setTimeLeft(
-        remaining > 0 ? remaining : 0
-      );
-    };
-
-    // ✅ RUN IMMEDIATELY
-    updateTimer();
-
-    const interval = setInterval(
-      updateTimer,
-      1000
+  const remaining =
+    Math.floor(
+      (cycleEnd - now) / 1000
     );
 
-    return () => clearInterval(interval);
-  }, [session]);
+  if (remaining > 0) {
+    setTimeLeft(remaining);
+    setIsSessionActive(true);
+  } else {
+    setTimeLeft(0);
+    setIsSessionActive(false);
+  }
+};
+
+  updateTimer();
+
+  const interval = setInterval(
+    updateTimer,
+    1000
+  );
+
+  return () => clearInterval(interval);
+}, [session]);
 
   // ⚡ REALTIME BALANCE SYNC
   useEffect(() => {
@@ -189,10 +202,10 @@ export default function MiningClient({
       {/* ⛏ MINING */}
       <div className="bg-zinc-900 p-6 rounded-2xl">
 
-        {!session ? (
+        {!session || !isSessionActive ? (
           <>
             <p className="text-zinc-400 mb-4">
-              No active mining session
+              Mining cycle completed. Click Mine Now to start again.
             </p>
 
             <button
@@ -202,7 +215,7 @@ export default function MiningClient({
             >
               {loading
                 ? "Starting..."
-                : "Start Mining"}
+                : "Mine Now"}
             </button>
           </>
         ) : (

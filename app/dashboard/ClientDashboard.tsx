@@ -497,6 +497,7 @@ function MiningCard({
   const [timeLeft, setTimeLeft] = useState(0);
   const [loading, setLoading] = useState(true);
   const [currentSession, setCurrentSession] = useState(session);
+  const BASE_DURATION = 24 * 60 * 60;
 
   const ratePerHour =
   Number(currentSession?.rate_per_second || 0) * 3600
@@ -564,77 +565,74 @@ if (
 
 setCurrentSession(data.session);
 
-   // ================= FIX UTC DB TIME =================
+  // ================= 24-HOUR MINING CYCLE =================
 
-// Supabase returns:
-// 2026-05-29T23:06:12.487
-// without timezone sometimes.
-//
-// Force UTC safely.
+const CLAIM_CYCLE_SECONDS =
+  24 * 60 * 60;
 
-const rawEnd =
-  String(
-    data.session.ends_at || ''
-  );
-
-const normalizedEnd =
-  rawEnd.endsWith('Z')
-    ? rawEnd
-    : rawEnd + 'Z';
-
-const endTime =
+const cycleStart =
   new Date(
-    normalizedEnd
+    data.session.last_claim_at ||
+      data.session.started_at
+  ).getTime();
+
+const cycleEnd =
+  cycleStart +
+  CLAIM_CYCLE_SECONDS * 1000;
+
+const planEnd =
+  new Date(
+    data.session.ends_at
   ).getTime();
 
 const now =
   Date.now();
 
+const nextClaimTime =
+  Math.min(
+    cycleEnd,
+    planEnd
+  );
+
 const remaining =
   Math.max(
     0,
-    endTime - now
+    nextClaimTime - now
   );
 
 console.log({
-
-  rawEnd,
-
-  normalizedEnd,
-
-  endTime,
-
+  cycleStart,
+  cycleEnd,
+  planEnd,
   now,
-
   remaining,
-
   remainingHours:
     remaining /
     1000 /
     60 /
     60
-
 });
 
-    setTimeLeft(
-      remaining
-    );
+setTimeLeft(
+  remaining
+);
 
-    setLoading(false);
+setLoading(false);
 
-  } catch (err) {
+} catch (err) {
 
-    console.error(
-      'Session fetch error:',
-      err
-    );
+  console.error(
+    'Session fetch error:',
+    err
+  );
 
-    setTimeLeft(0);
+  setTimeLeft(0);
 
-    setLoading(false);
-  }
+  setLoading(false);
+}
 
 };
+
 
 
   // ================= INITIAL LOAD =================

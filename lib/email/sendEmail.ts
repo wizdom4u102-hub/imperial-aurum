@@ -12,6 +12,12 @@ export async function sendEmail({
   html,
 }: SendEmailOptions) {
   try {
+    console.log('EMAIL DEBUG:', {
+  hasResendApiKey: Boolean(process.env.RESEND_API_KEY),
+  emailFrom: process.env.EMAIL_FROM,
+  emailTo: to,
+  subject,
+})
     const { data, error } = await resend.emails.send({
       // For development/testing
       // Change this after verifying your domain.

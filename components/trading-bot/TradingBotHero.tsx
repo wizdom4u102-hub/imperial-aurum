@@ -369,46 +369,62 @@ export default function TradingBotHero() {
             </div>
           </motion.div>
 
-          {/* Live card */}
+                    {/* Live Card */}
           <motion.div
-            animate={{ y: [0, -6, 0] }}
+            animate={{ rotate: 360 }}
             transition={{
-              duration: 3,
+              duration: 18,
               repeat: Infinity,
+              ease: "linear",
             }}
-            className="absolute right-0 top-6 z-20 rounded-2xl border border-emerald-400/20 bg-zinc-900/90 px-4 py-3 shadow-xl backdrop-blur sm:right-4 sm:top-12"
+            className="pointer-events-none absolute inset-0 z-20 block"
           >
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-400" />
+            <div className="absolute left-1/2 top-1/2 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full sm:h-[500px] sm:w-[500px] lg:h-[620px] lg:w-[620px]">
+              <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
+                <div className="rounded-2xl border border-emerald-400/20 bg-zinc-900/90 px-4 py-3 shadow-xl backdrop-blur">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-400" />
 
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                Live
-              </span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                      Live
+                    </span>
+                  </div>
+
+                  <p className="mt-1 text-xs text-zinc-400">
+                    Bot Active
+                  </p>
+                </div>
+              </div>
             </div>
-
-            <p className="mt-1 text-xs text-zinc-400">Bot Active</p>
           </motion.div>
 
-          {/* AI card */}
+                    {/* Intelligence Card */}
           <motion.div
-            animate={{ y: [0, 7, 0] }}
+            animate={{ rotate: -360 }}
             transition={{
-              duration: 3.5,
+              duration: 22,
               repeat: Infinity,
+              ease: "linear",
             }}
-            className="absolute bottom-6 left-0 z-20 rounded-2xl border border-cyan-400/20 bg-zinc-900/90 px-4 py-3 shadow-xl backdrop-blur sm:bottom-12 sm:left-4"
+            className="pointer-events-none absolute inset-0 z-20 block"
           >
-            <div className="flex items-center gap-2">
-              <BrainCircuit className="h-4 w-4 text-cyan-400" />
+            <div className="absolute left-1/2 top-1/2 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full sm:h-[500px] sm:w-[500px] lg:h-[620px] lg:w-[620px]">
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2">
+                <div className="rounded-2xl border border-cyan-400/20 bg-zinc-900/90 px-4 py-3 shadow-xl backdrop-blur">
+                  <div className="flex items-center gap-2">
+                    <BrainCircuit className="h-4 w-4 text-cyan-400" />
 
-              <span className="text-xs text-zinc-400">
-                Intelligence
-              </span>
+                    <span className="text-xs text-zinc-400">
+                      Intelligence
+                    </span>
+                  </div>
+
+                  <p className="mt-1 text-lg font-bold text-cyan-400">
+                    Analyzing Markets
+                  </p>
+                </div>
+              </div>
             </div>
-
-            <p className="mt-1 text-lg font-bold text-cyan-400">
-              Analyzing Markets
-            </p>
           </motion.div>
         </div>
 

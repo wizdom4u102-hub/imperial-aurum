@@ -17,36 +17,44 @@ export async function signupAction(formData: FormData) {
   const supabase = await createActionClient();
 
   const username = String(formData.get("username") || "")
-  .trim()
-  .toLowerCase();
+    .trim()
+    .toLowerCase();
 
-const email = String(formData.get("email") || "")
-  .trim()
-  .toLowerCase();
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
 
-const password = String(formData.get("password") || "")
-  .trim();
+  const password = String(formData.get("password") || "")
+    .trim();
 
-const referralUsername = String(
-  formData.get("referral_code") || ""
-)
-  .trim()
-  .toLowerCase();
+  const referralUsername = String(
+    formData.get("referral_code") || ""
+  )
+    .trim()
+    .toLowerCase();
 
   // Validation
   if (!email) {
-    return redirect(`/signup?error=${encodeURIComponent("Email is required")}`);
+    return redirect(
+      `/signup?error=${encodeURIComponent("Email is required")}`
+    );
   }
+
   if (!password || password.length < 6) {
-    return redirect(`/signup?error=${encodeURIComponent("Password must be at least 6 characters")}`);
+    return redirect(
+      `/signup?error=${encodeURIComponent(
+        "Password must be at least 6 characters"
+      )}`
+    );
   }
+
   if (!/^[a-z0-9_]{3,30}$/.test(username)) {
-  return redirect(
-    `/signup?error=${encodeURIComponent(
-      "Username must be 3-30 characters and contain only letters, numbers and underscore." 
-    )}`
-  );
-}
+    return redirect(
+      `/signup?error=${encodeURIComponent(
+        "Username must be 3-30 characters and contain only letters, numbers and underscore."
+      )}`
+    );
+  }
 
   let referrerId: string | null = null;
 
@@ -68,40 +76,45 @@ const referralUsername = String(
   }
 
   const {
-  data: existingUsername,
-  error: usernameError,
-} = await supabase
-  .from("profiles")
-  .select("id")
-  .eq("username", username)
-  .maybeSingle();
+    data: existingUsername,
+    error: usernameError,
+  } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("username", username)
+    .maybeSingle();
 
-if (usernameError) {
-  console.error("Username lookup error:", usernameError);
-}
+  if (usernameError) {
+    console.error("Username lookup error:", usernameError);
+  }
 
-if (existingUsername) {
-  return redirect(
-    `/signup?error=${encodeURIComponent(
-      "Username already exists."
-    )}`
-  );
-}
+  if (existingUsername) {
+    return redirect(
+      `/signup?error=${encodeURIComponent(
+        "Username already exists."
+      )}`
+    );
+  }
 
   // Create account
-  const { data, error: signupError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: referrerId ? { referrer_id: referrerId } : undefined,
-    },
-  });
+  const { data, error: signupError } =
+    await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: referrerId
+          ? { referrer_id: referrerId }
+          : undefined,
+      },
+    });
 
   if (signupError || !data?.user) {
     console.error("Signup error:", signupError);
+
     return redirect(
       `/signup?error=${encodeURIComponent(
-        signupError?.message || "Signup failed. Please try again."
+        signupError?.message ||
+          "Signup failed. Please try again."
       )}`
     );
   }
@@ -109,111 +122,116 @@ if (existingUsername) {
   const userId = data.user.id;
 
   // Create profile
-const { error: profileError } = await supabase
-  .from("profiles")
-  .upsert(
-    {
-  id: userId,
-  username,
-  email,
-  referrer_id: referrerId,
-  referred_by: referrerId,
-  gold_balance: 1000,
-  updated_at: new Date().toISOString(),
-},
-    { onConflict: "id" }
-  );
+  const { error: profileError } =
+    await supabase
+      .from("profiles")
+      .upsert(
+        {
+          id: userId,
+          username,
+          email,
+          referrer_id: referrerId,
+          referred_by: referrerId,
+          gold_balance: 1000,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      );
 
-if (profileError) {
-  console.error(profileError);
-}
+  if (profileError) {
+    console.error(profileError);
+  }
 
-// Create balances row
-const { error: balanceError } = await supabase
-  .from("balances")
-  .upsert(
-    {
-      user_id: userId,
-      cash: 0,
-      gold: 1000,
-      shares: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      onConflict: "user_id",
-    }
-  );
+  // Create balances row
+  const { error: balanceError } =
+    await supabase
+      .from("balances")
+      .upsert(
+        {
+          user_id: userId,
+          cash: 0,
+          gold: 1000,
+          shares: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "user_id",
+        }
+      );
 
-if (balanceError) {
-  console.error("Balance creation error:", balanceError);
-}
-
-await sendEmail({
-  to: email,
-  subject: "Welcome to Imperial Aurum Mining",
-  html: welcomeEmail(),
-});
-
- // ==============================
-// CREDIT REFERRER + SEND EMAIL
-// ==============================
-
-if (referrerId) {
-
-  // Give referrer 1000 Gold
-  const { error: rewardError } =
-    await supabase.rpc("increment_gold_balance", {
-      user_id: referrerId,
-      amount: 1000,
-    });
-
-  if (rewardError) {
-
+  if (balanceError) {
     console.error(
-      "Referrer reward error:",
-      rewardError
+      "Balance creation error:",
+      balanceError
     );
+  }
 
-  } else {
+  // ==============================
+  // SEND WELCOME EMAIL
+  // ==============================
 
-    // Get referrer's email
-    const { data: referrerProfile } =
-      await supabase
+  await sendEmail({
+    to: email,
+    subject: "Welcome to Imperial Aurum Mining",
+    html: welcomeEmail(username),
+  });
+
+  // ==============================
+  // CREDIT REFERRER + SEND EMAIL
+  // ==============================
+
+  if (referrerId) {
+    // Give referrer 1000 Gold
+    const { error: rewardError } =
+      await supabase.rpc(
+        "increment_gold_balance",
+        {
+          user_id: referrerId,
+          amount: 1000,
+        }
+      );
+
+    if (rewardError) {
+      console.error(
+        "Referrer reward error:",
+        rewardError
+      );
+    } else {
+      // Get referrer's email and username
+      const {
+        data: referrerProfile,
+      } = await supabase
         .from("profiles")
-        .select("email")
+        .select("email, username")
         .eq("id", referrerId)
         .single();
 
-    if (referrerProfile?.email) {
-
-      try {
-
-        await sendEmail({
-          to: referrerProfile.email,
-          subject: "You Earned 1000 Gold!",
-          html: referralSignupBonusEmail({
-            newUserEmail: email,
-            
-          }),
-        });
-
-      } catch (emailError) {
-
-        console.error(
-          "Referral registration email error:",
-          emailError
-        );
-
+      if (referrerProfile?.email) {
+        try {
+          await sendEmail({
+            to: referrerProfile.email,
+            subject: "You Earned 1000 Gold!",
+            html: referralSignupBonusEmail({
+              name:
+                referrerProfile.username ||
+                "Investor",
+              newUserName: username,
+            }),
+          });
+        } catch (emailError) {
+          console.error(
+            "Referral registration email error:",
+            emailError
+          );
+        }
       }
-
     }
-
   }
 
-}
-
-  return redirect("/dashboard?message=Check your email to confirm your account");
+  return redirect(
+    "/dashboard?message=Check your email to confirm your account"
+  );
 }
 
 /* ================================
@@ -297,11 +315,12 @@ export async function loginAction(formData: FormData) {
   const {
     data: profile,
     error: profileError,
-  } = await supabase
-    .from("profiles")
-    .select("role,is_admin")
-    .eq("id", data.user.id)
-    .maybeSingle();
+  } =
+    await supabase
+      .from("profiles")
+      .select("role,is_admin,username")
+      .eq("id", data.user.id)
+      .maybeSingle();
 
   if (profileError) {
     console.error(
@@ -334,17 +353,14 @@ export async function loginAction(formData: FormData) {
   // ==========================================
 
   if (isAdminLogin) {
-
     if (!isAdmin) {
-
       await supabase.auth.signOut();
 
       return redirect(
-  `/login/admin?error=${encodeURIComponent(
-    "This is the Admin Login page. Your account does not have administrator access. Please use the User Login page."
-  )}`
-);
-
+        `/login/admin?error=${encodeURIComponent(
+          "This is the Admin Login page. Your account does not have administrator access. Please use the User Login page."
+        )}`
+      );
     }
 
     return redirect("/admin");
@@ -355,7 +371,6 @@ export async function loginAction(formData: FormData) {
   // ==========================================
 
   if (isAdmin) {
-
     await supabase.auth.signOut();
 
     return redirect(
@@ -363,7 +378,6 @@ export async function loginAction(formData: FormData) {
         "This is the User Login page. Admin accounts cannot log in here. Please use the Admin Login page."
       )}`
     );
-
   }
 
   return redirect("/dashboard");
@@ -383,7 +397,9 @@ export async function logoutAction() {
 /* ================================
    ✅ CHANGE PASSWORD
 ================================ */
-export async function changePasswordAction(formData: FormData) {
+export async function changePasswordAction(
+  formData: FormData
+) {
   const supabase = await createActionClient();
 
   const currentPassword = String(
@@ -413,7 +429,11 @@ export async function changePasswordAction(formData: FormData) {
       ? "/admin/dashboard"
       : "/dashboard";
 
-  if (!currentPassword || !newPassword || !confirmPassword) {
+  if (
+    !currentPassword ||
+    !newPassword ||
+    !confirmPassword
+  ) {
     return redirect(
       `${changePasswordPage}?error=${encodeURIComponent(
         "All fields are required"
@@ -441,7 +461,8 @@ export async function changePasswordAction(formData: FormData) {
   const {
     data: { user },
     error: userError,
-  } = await supabase.auth.getUser();
+  } =
+    await supabase.auth.getUser();
 
   if (userError || !user?.email) {
     return redirect(
@@ -473,7 +494,10 @@ export async function changePasswordAction(formData: FormData) {
     });
 
   if (updateError) {
-    console.error("Change password error:", updateError);
+    console.error(
+      "Change password error:",
+      updateError
+    );
 
     return redirect(
       `${changePasswordPage}?error=${encodeURIComponent(
@@ -487,11 +511,29 @@ export async function changePasswordAction(formData: FormData) {
     scope: "others",
   });
 
+  // ==============================
+  // GET USERNAME
+  // ==============================
+
+  const { data: profile } =
+    await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle();
+
+  const username =
+    profile?.username || "Investor";
+
+  // ==============================
+  // SEND PASSWORD EMAIL
+  // ==============================
+
   await sendEmail({
-  to: user.email,
-  subject: "Password Changed",
-  html: passwordChangedEmail(),
-});
+    to: user.email,
+    subject: "Password Changed",
+    html: passwordChangedEmail(username),
+  });
 
   return redirect(
     `${successPage}?message=${encodeURIComponent(
@@ -503,10 +545,14 @@ export async function changePasswordAction(formData: FormData) {
 /* ================================
    ✅ FORGOT PASSWORD
 ================================ */
-export async function forgotPasswordAction(formData: FormData) {
+export async function forgotPasswordAction(
+  formData: FormData
+) {
   const supabase = await createActionClient();
 
-  const email = String(formData.get("email") || "")
+  const email = String(
+    formData.get("email") || ""
+  )
     .trim()
     .toLowerCase();
 
@@ -522,15 +568,19 @@ export async function forgotPasswordAction(formData: FormData) {
     process.env.NEXT_PUBLIC_SITE_URL ||
     "http://localhost:3000";
 
-  const { error } = await supabase.auth.resetPasswordForEmail(
-    email,
-    {
-      redirectTo: `${origin}/auth/callback?next=/reset-password`,
-    }
-  );
+  const { error } =
+    await supabase.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo: `${origin}/auth/callback?next=/reset-password`,
+      }
+    );
 
   if (error) {
-    console.error("Forgot password error:", error);
+    console.error(
+      "Forgot password error:",
+      error
+    );
 
     return redirect(
       `/forgot-password?error=${encodeURIComponent(
@@ -549,7 +599,9 @@ export async function forgotPasswordAction(formData: FormData) {
 /* ================================
    ✅ RESET PASSWORD
 ================================ */
-export async function resetPasswordAction(formData: FormData) {
+export async function resetPasswordAction(
+  formData: FormData
+) {
   const supabase = await createActionClient();
 
   const newPassword = String(
@@ -584,12 +636,16 @@ export async function resetPasswordAction(formData: FormData) {
     );
   }
 
-  const { error } = await supabase.auth.updateUser({
-    password: newPassword,
-  });
+  const { error } =
+    await supabase.auth.updateUser({
+      password: newPassword,
+    });
 
   if (error) {
-    console.error("Reset password error:", error);
+    console.error(
+      "Reset password error:",
+      error
+    );
 
     return redirect(
       `/reset-password?error=${encodeURIComponent(
@@ -599,27 +655,43 @@ export async function resetPasswordAction(formData: FormData) {
   }
 
   // Get current user before signing out other sessions
-const {
-  data: { user },
-} = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-// Optional: sign out other sessions
-await supabase.auth.signOut({
-  scope: "others",
-});
+  // Get username before signing out
+  let username = "Investor";
 
-// Send confirmation email
-if (user?.email) {
-  await sendEmail({
-    to: user.email,
-    subject: "Password Reset Successful",
-    html: passwordResetSuccessEmail(),
+  if (user?.id) {
+    const { data: profile } =
+      await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    if (profile?.username) {
+      username = profile.username;
+    }
+  }
+
+  // Optional: sign out other sessions
+  await supabase.auth.signOut({
+    scope: "others",
   });
-}
 
-return redirect(
-  `/login?message=${encodeURIComponent(
-    "Your password has been reset successfully. Please sign in."
-  )}`
-);
+  // Send confirmation email
+  if (user?.email) {
+    await sendEmail({
+      to: user.email,
+      subject: "Password Reset Successful",
+      html: passwordResetSuccessEmail(username),
+    });
+  }
+
+  return redirect(
+    `/login?message=${encodeURIComponent(
+      "Your password has been reset successfully. Please sign in."
+    )}`
+  );
 }

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { requireAdminApi  } from '@/lib/admin'
+import { requireAdminApi } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { sendEmail } from "@/lib/email/sendEmail";
-import { withdrawalApprovedEmail } from "@/lib/email/templates";
+import { sendEmail } from '@/lib/email/sendEmail'
+import { withdrawalApprovedEmail } from '@/lib/email/templates'
 
 export async function POST(
   req: Request,
@@ -11,7 +11,6 @@ export async function POST(
   }
 ) {
   try {
-
     console.log(
       '=========== APPROVE WITHDRAWAL =========='
     )
@@ -21,7 +20,6 @@ export async function POST(
       await requireAdminApi()
 
     if (!admin.ok) {
-
       console.error(
         '❌ ADMIN AUTH FAILED:',
         admin.error
@@ -60,7 +58,6 @@ export async function POST(
       withdrawalError ||
       !withdrawal
     ) {
-
       console.error(
         '❌ WITHDRAWAL FETCH ERROR:',
         withdrawalError
@@ -85,7 +82,6 @@ export async function POST(
     if (
       withdrawal.status === 'approved'
     ) {
-
       return NextResponse.json(
         {
           error: 'Withdrawal already approved'
@@ -104,14 +100,54 @@ export async function POST(
         withdrawal.amount || 0
       )
 
-      // ================= GET USER EMAIL =================
-
+    // ================= GET USER EMAIL =================
 const {
   data: profile,
-} = await supabaseAdmin.auth.admin.getUserById(userId);
+} =
+  await supabaseAdmin.auth.admin.getUserById(
+    userId
+  )
 
 const userEmail =
-  profile.user?.email;
+  profile.user?.email
+
+// ================= GET USERNAME =================
+const {
+  data: userProfile,
+  error: userProfileError,
+} =
+  await supabaseAdmin
+    .from('profiles')
+    .select('username')
+    .eq(
+      'id',
+      userId
+    )
+    .single()
+
+if (
+  userProfileError ||
+  !userProfile
+) {
+  console.error(
+    '❌ PROFILE FETCH ERROR:',
+    userProfileError
+  )
+
+  return NextResponse.json(
+    {
+      error:
+        'User profile not found'
+    },
+    {
+      status: 404
+    }
+  )
+}
+
+const username =
+  userProfile.username ||
+  'User'
 
     // ================= GET USER BALANCE =================
     const {
@@ -131,7 +167,6 @@ const userEmail =
       balanceFetchError ||
       !balance
     ) {
-
       console.error(
         '❌ BALANCE FETCH ERROR:',
         balanceFetchError
@@ -157,7 +192,6 @@ const userEmail =
       currentCash <
       withdrawAmount
     ) {
-
       return NextResponse.json(
         {
           error:
@@ -176,14 +210,12 @@ const userEmail =
       await supabaseAdmin
         .from('balances')
         .update({
-
           cash:
             currentCash -
             withdrawAmount,
 
           updated_at:
             new Date().toISOString(),
-
         })
         .eq(
           'user_id',
@@ -193,7 +225,6 @@ const userEmail =
     if (
       balanceUpdateError
     ) {
-
       console.error(
         '❌ BALANCE UPDATE ERROR:',
         balanceUpdateError
@@ -212,25 +243,22 @@ const userEmail =
 
     // ================= UPDATE WITHDRAWAL STATUS =================
     const {
-  error: withdrawalUpdateError
-} =
-  await supabaseAdmin
-    .from('withdrawals')
-    .update({
-
-      status:
-        'approved',
-
-    })
-    .eq(
-      'id',
-      id
-    )
+      error: withdrawalUpdateError
+    } =
+      await supabaseAdmin
+        .from('withdrawals')
+        .update({
+          status:
+            'approved',
+        })
+        .eq(
+          'id',
+          id
+        )
 
     if (
       withdrawalUpdateError
     ) {
-
       console.error(
         '❌ WITHDRAWAL UPDATE ERROR:',
         withdrawalUpdateError
@@ -248,28 +276,16 @@ const userEmail =
     }
 
     // =====================================================
-    // UPDATE EXISTING PENDING TRANSACTION
-    // DO NOT INSERT DUPLICATE
+    // FIND EXISTING PENDING WITHDRAWAL TRANSACTION
     // =====================================================
 
     const {
-      data: updatedTx,
-      error: txUpdateError
+      data: pendingTransactions,
+      error: pendingTransactionsError
     } =
       await supabaseAdmin
         .from('transactions')
-        .update({
-
-          status:
-            'completed',
-
-          description:
-            `Withdrawal of $${withdrawAmount} approved by admin`,
-
-          updated_at:
-            new Date().toISOString(),
-
-        })
+        .select('*')
         .eq(
           'user_id',
           userId
@@ -282,129 +298,160 @@ const userEmail =
           'status',
           'pending'
         )
-        .eq(
-          'amount',
-          withdrawAmount
+        .order(
+          'created_at',
+          {
+            ascending: false
+          }
         )
-        .select()
 
     if (
-      txUpdateError
+      pendingTransactionsError
     ) {
-
       console.error(
-        '❌ TX UPDATE ERROR:',
-        txUpdateError
+        '❌ PENDING TRANSACTION FETCH ERROR:',
+        pendingTransactionsError
       )
     }
 
     // =====================================================
-    // FALLBACK
-    // CREATE TRANSACTION IF NONE EXISTS
+    // MATCH THE EXISTING TRANSACTION
+    // =====================================================
+
+    const pendingTransaction =
+      pendingTransactions?.find(
+        (transaction) =>
+          Number(
+            transaction.amount
+          ) === withdrawAmount
+      )
+
+    console.log(
+      'PENDING WITHDRAWAL TRANSACTION:',
+      pendingTransaction
+    )
+
+    // =====================================================
+    // UPDATE THE EXISTING TRANSACTION
     // =====================================================
 
     if (
-      !updatedTx ||
-      updatedTx.length === 0
+      pendingTransaction
     ) {
-
-      console.log(
-        'No pending withdrawal transaction found. Creating completed transaction.'
-      )
-
       const {
-        error: insertTxError
+        error: txUpdateError
       } =
         await supabaseAdmin
           .from('transactions')
-          .insert({
-
-            user_id:
-              userId,
-
-            type:
-              'withdrawal',
-
-            amount:
-              withdrawAmount,
-
+          .update({
             status:
               'completed',
 
             description:
               `Withdrawal of $${withdrawAmount} approved by admin`,
-
-            created_at:
-              new Date().toISOString(),
-
           })
+          .eq(
+            'id',
+            pendingTransaction.id
+          )
 
       if (
-        insertTxError
+        txUpdateError
       ) {
-
         console.error(
-          '❌ INSERT TX ERROR:',
-          insertTxError
+          '❌ TX UPDATE ERROR:',
+          txUpdateError
+        )
+      } else {
+        console.log(
+          '✅ EXISTING WITHDRAWAL TRANSACTION UPDATED:',
+          pendingTransaction.id
         )
       }
+    } else {
+      console.error(
+        '❌ NO MATCHING PENDING WITHDRAWAL TRANSACTION FOUND',
+        {
+          userId,
+          withdrawAmount,
+        }
+      )
     }
 
     // =====================================================
-// SEND APPROVAL EMAIL
-// =====================================================
+    // SEND APPROVAL EMAIL
+    // =====================================================
+    try {
+      if (userEmail) {
+        const emailResult =
+          await sendEmail({
+            to: userEmail,
+            subject:
+              'Withdrawal Approved',
+            html:
+              withdrawalApprovedEmail(
+                withdrawAmount,
+               username
+              ),
+          })
 
-try {
+        if (
+          !emailResult.success
+        ) {
+          console.error(
+            'WITHDRAWAL APPROVAL EMAIL FAILED:',
+            emailResult.error
+          )
+        } else {
+          console.log(
+            'WITHDRAWAL APPROVAL EMAIL SENT:',
+            userEmail
+          )
+        }
+      } else {
+        console.error(
+          'WITHDRAWAL APPROVAL EMAIL SKIPPED: USER EMAIL NOT FOUND',
+          {
+            userId,
+          }
+        )
+      }
+    } catch (
+      emailError
+    ) {
+      console.error(
+        'WITHDRAWAL APPROVED EMAIL ERROR:',
+        emailError
+      )
+    }
 
-  if (userEmail) {
+    // =====================================================
+    // SUCCESS RESPONSE
+    // =====================================================
 
-    await sendEmail({
+    console.log(
+      '✅ WITHDRAWAL APPROVED SUCCESSFULLY'
+    )
 
-      to: userEmail,
-
-      subject: "Withdrawal Approved",
-
-      html: withdrawalApprovedEmail(
-        withdrawAmount
-      ),
-
-    });
-
-  }
-
-} catch (emailError) {
-
-  console.error(
-    "WITHDRAWAL APPROVED EMAIL ERROR:",
-    emailError
-  );
-
-}
-
-// =====================================================
-// SUCCESS RESPONSE
-// =====================================================
-
-console.log(
-  "✅ WITHDRAWAL APPROVED SUCCESSFULLY"
-);
-
-return NextResponse.json({
-  success: true,
-});
-
-  } catch (err: any) {
-
+    return NextResponse.json({
+      success: true,
+    })
+  } catch (
+    err: unknown
+  ) {
     console.error(
       '❌ APPROVE WITHDRAWAL ERROR:',
       err
     )
 
+    const message =
+      err instanceof Error
+        ? err.message
+        : 'Server error'
+
     return NextResponse.json(
       {
-        error:
-          err.message ||
-          'Server error'
+        error: message
       },
       {
         status: 500

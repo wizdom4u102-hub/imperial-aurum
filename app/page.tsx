@@ -1,6 +1,5 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
-import Statistics from "@/components/Statistics";
 import AboutPreview from "@/components/AboutPreview";
 import HowItWorks from "@/components/HowItWorks";
 import PlansPreview from "@/components/PlansPreview";
@@ -10,7 +9,6 @@ import Testimonials from "@/components/Testimonials";
 import FaqPreview from "@/components/FaqPreview";
 import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
-import LiveTicker from "@/components/LiveTicker";
 import PaymentSecurity from "@/components/PaymentSecurity";
 import TeamMembers from "@/components/TeamMembers";
 import BlogPreview from "@/components/BlogPreview";
@@ -24,11 +22,7 @@ export default function HomePage() {
       <Navbar />
 
       <Hero />
-
-      <LiveTicker />
-
-      <Statistics />
-
+      
       <AboutPreview />
 
       <HowItWorks />

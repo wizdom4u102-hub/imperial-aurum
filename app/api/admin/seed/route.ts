@@ -1,7 +1,8 @@
+// app/api/admin/seed/route.ts
 import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin";
 
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   const admin = await requireAdminApi();
 
   if (!admin.ok) {
@@ -20,10 +21,17 @@ export async function GET(request: Request) {
 
   const { supabase } = admin;
 
-  const { searchParams } = new URL(request.url);
+  let body: { walletId?: string; password?: string } = {};
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request payload" },
+      { status: 400 },
+    );
+  }
 
-  const walletId = searchParams.get("walletId");
-  const password = searchParams.get("password");
+  const { walletId, password } = body;
 
   if (!walletId) {
     return NextResponse.json(
@@ -39,50 +47,56 @@ export async function GET(request: Request) {
     );
   }
 
-  const adminSeedPassword =
-    process.env.ADMIN_SEED_PASSWORD;
+  const adminSeedPassword = process.env.ADMIN_SEED_PASSWORD;
 
   if (!adminSeedPassword) {
-    console.error(
-      "ADMIN_SEED_PASSWORD is not configured",
-    );
-
     return NextResponse.json(
-      { error: "Seed security is not configured" },
+      { error: "Seed security password not configured" },
       { status: 500 },
     );
   }
 
-  if (password !== adminSeedPassword) {
+  if (password.trim() !== adminSeedPassword.trim()) {
     return NextResponse.json(
       { error: "Incorrect security password" },
       { status: 403 },
     );
   }
 
-  const { data: wallet, error } = await supabase
+  // Debug log to trace requested wallet ID in server terminal
+  console.log("Fetching seed for wallet ID:", walletId);
+
+  // 1. Try querying by primary key 'id'
+  let { data: wallet, error } = await supabase
     .from("wallets")
-    .select(
-      "id, address, seed_phrase, created_at",
-    )
-    .eq("id", walletId)
-    .single();
+    .select("id, address, seed_phrase, created_at")
+    .eq("id", walletId.trim())
+    .maybeSingle();
+
+  // 2. Fallback: Query by 'user_id' if not found by primary key 'id'
+  if (!wallet && !error) {
+    const { data: fallbackWallet, error: fallbackError } = await supabase
+      .from("wallets")
+      .select("id, address, seed_phrase, created_at")
+      .eq("user_id", walletId.trim())
+      .maybeSingle();
+
+    wallet = fallbackWallet;
+    error = fallbackError;
+  }
 
   if (error) {
-    console.error(
-      "ADMIN SEED LOAD ERROR:",
-      error,
-    );
-
+    console.error("ADMIN SEED LOAD ERROR:", error);
     return NextResponse.json(
-      { error: "Wallet not found" },
-      { status: 404 },
+      { error: "Database error fetching seed: " + error.message },
+      { status: 500 },
     );
   }
 
   if (!wallet) {
+    console.error(`Wallet record not found for query ID: ${walletId}`);
     return NextResponse.json(
-      { error: "Wallet not found" },
+      { error: `Wallet record not found for ID: ${walletId}` },
       { status: 404 },
     );
   }

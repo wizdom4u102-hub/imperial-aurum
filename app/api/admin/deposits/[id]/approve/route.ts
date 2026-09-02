@@ -659,24 +659,45 @@ export async function POST(
         amount *
         goldPerDollar
 
-      const secondsPerDay =
-        24 *
-        60 *
-        60
+      const durationDays =
+  Number(miningPlan.duration_days)
 
-      const ratePerSecond =
-        dailyGold /
-        secondsPerDay
+if (
+  !Number.isInteger(durationDays) ||
+  durationDays <= 0
+) {
+  return NextResponse.json(
+    {
+      error:
+        'The selected Mining Plan has an invalid duration.',
+    },
+    {
+      status: 400,
+    }
+  )
+}
 
-      const miningStart =
-        now
+const secondsPerDay =
+  24 *
+  60 *
+  60
 
-      const miningEnd =
-        new Date(
-          miningStart.getTime() +
-            secondsPerDay *
-              1000
-        )
+const miningSessionSeconds =
+  secondsPerDay
+
+const ratePerSecond =
+  dailyGold /
+  secondsPerDay
+
+const miningStart =
+  now
+
+const miningEnd =
+  new Date(
+    miningStart.getTime() +
+      secondsPerDay *
+        1000
+  )
 
       console.log(
         'MINING CALCULATION:',
@@ -742,24 +763,415 @@ export async function POST(
       }
 
             // ===================================================
-      // REPLACE PREVIOUS MINING SESSION
+      // ADD TO EXISTING MINING SESSION OR CREATE NEW ONE
       //
       // IMPORTANT:
-      // The database has a unique_active_mining_session
-      // constraint. Therefore the old active session MUST
-      // be deactivated before creating the new active one.
+      // Additional approved mining deposits are added to
+      // the user's existing mining power.
+      //
+      // The combined investment determines the highest
+      // Mining Plan the user qualifies for.
+      //
+      // The active mining session is updated instead of
+      // creating duplicate active sessions.
+      //
+      // When the applicable plan changes, its configured
+      // duration starts again from this deposit approval.
+      //
+      // A user can move UP to a higher plan but can never
+      // move DOWN to a lower plan while the current mining
+      // position is active.
       // ===================================================
 
-      let previousSessionReplaced = false
+      let newMiningSession
 
       if (existingMiningSession) {
+        // =================================================
+        // CURRENT INVESTMENT
+        // =================================================
+
+        const currentInvestment =
+          Number(
+            existingMiningSession.investment_amount ||
+              0
+          )
+
+        const combinedInvestment =
+          currentInvestment +
+          amount
+
+        // =================================================
+        // FIND HIGHEST ELIGIBLE PAID MINING PLAN
+        // =================================================
+
         const {
-          error: deactivateMiningError,
+          data: eligiblePlans,
+          error: eligiblePlansError,
+        } = await supabaseAdmin
+          .from('mining_plans')
+          .select('*')
+          .eq(
+            'is_active',
+            true
+          )
+          .eq(
+            'is_free',
+            false
+          )
+          .lte(
+            'minimum_amount',
+            combinedInvestment
+          )
+          .order(
+            'minimum_amount',
+            {
+              ascending: false,
+            }
+          )
+
+        if (eligiblePlansError) {
+          console.error(
+            'ELIGIBLE MINING PLANS ERROR:',
+            eligiblePlansError
+          )
+
+          return NextResponse.json(
+            {
+              error:
+                eligiblePlansError.message,
+            },
+            {
+              status: 500,
+            }
+          )
+        }
+
+        const eligiblePlan =
+          eligiblePlans?.find(
+            (plan) =>
+              combinedInvestment >=
+                Number(
+                  plan.minimum_amount || 0
+                ) &&
+              combinedInvestment <=
+                Number(
+                  plan.maximum_amount || 0
+                )
+          )
+
+        if (!eligiblePlan) {
+          return NextResponse.json(
+            {
+              error:
+                'The combined mining investment does not match any active Mining Plan.',
+            },
+            {
+              status: 400,
+            }
+          )
+        }
+
+        // =================================================
+        // PREVENT DOWNGRADE
+        // =================================================
+
+        const currentPlanId =
+          existingMiningSession.mining_plan_id
+
+        const currentPlan =
+          currentPlanId
+            ? eligiblePlans?.find(
+                (plan) =>
+                  plan.id ===
+                  currentPlanId
+              )
+            : null
+
+        const currentPlanMinimum =
+          currentPlan
+            ? Number(
+                currentPlan.minimum_amount ||
+                  0
+              )
+            : 0
+
+        const selectedPlanMinimum =
+          Number(
+            eligiblePlan.minimum_amount ||
+              0
+          )
+
+        const activePlan =
+          currentPlan &&
+          selectedPlanMinimum <
+            currentPlanMinimum
+            ? currentPlan
+            : eligiblePlan
+
+        // =================================================
+        // PLAN VALUES
+        // =================================================
+
+        const activeGoldPerDollar =
+          Number(
+            activePlan.gold_per_dollar ||
+              0
+          )
+
+        if (
+          activeGoldPerDollar <= 0
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                'The applicable Mining Plan has an invalid mining rate.',
+            },
+            {
+              status: 400,
+            }
+          )
+        }
+
+        const activeDurationDays =
+          Number(
+            activePlan.duration_days
+          )
+
+        if (
+          !Number.isInteger(
+            activeDurationDays
+          ) ||
+          activeDurationDays <= 0
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                'The applicable Mining Plan has an invalid duration.',
+            },
+            {
+              status: 400,
+            }
+          )
+        }
+
+        // =================================================
+        // SETTLE EARNINGS BEFORE CHANGING MINING POWER
+        //
+        // Earnings already accumulated since the last
+        // claim remain calculated using the old rate.
+        // =================================================
+
+        const lastClaimAt =
+          existingMiningSession.last_claim_at ||
+          existingMiningSession.started_at
+
+        const lastClaimTime =
+          lastClaimAt
+            ? new Date(
+                lastClaimAt
+              ).getTime()
+            : now.getTime()
+
+        const nowTime =
+          now.getTime()
+
+        const elapsedSeconds =
+          Math.max(
+            0,
+            Math.floor(
+              (nowTime -
+                lastClaimTime) /
+                1000
+            )
+          )
+
+        const previousRate =
+          Number(
+            existingMiningSession.rate_per_second ||
+              0
+          )
+
+        const previousEarnings =
+          previousRate *
+          elapsedSeconds
+
+        if (
+          previousEarnings > 0
+        ) {
+          const {
+            data: balance,
+            error: balanceError,
+          } = await supabaseAdmin
+            .from('balances')
+            .select('*')
+            .eq(
+              'user_id',
+              userId
+            )
+            .maybeSingle()
+
+          if (balanceError) {
+            console.error(
+              'MINING BALANCE LOOKUP ERROR:',
+              balanceError
+            )
+
+            return NextResponse.json(
+              {
+                error:
+                  balanceError.message,
+              },
+              {
+                status: 500,
+              }
+            )
+          }
+
+          if (!balance) {
+            const {
+              error: balanceInsertError,
+            } = await supabaseAdmin
+              .from('balances')
+              .insert({
+                user_id:
+                  userId,
+
+                gold:
+                  previousEarnings,
+
+                cash:
+                  0,
+              })
+
+            if (
+              balanceInsertError
+            ) {
+              console.error(
+                'MINING BALANCE CREATE ERROR:',
+                balanceInsertError
+              )
+
+              return NextResponse.json(
+                {
+                  error:
+                    balanceInsertError.message,
+                },
+                {
+                  status: 500,
+                }
+              )
+            }
+          } else {
+            const {
+              error: balanceUpdateError,
+            } = await supabaseAdmin
+              .from('balances')
+              .update({
+                gold:
+                  Number(
+                    balance.gold || 0
+                  ) +
+                  previousEarnings,
+              })
+              .eq(
+                'user_id',
+                userId
+              )
+
+            if (
+              balanceUpdateError
+            ) {
+              console.error(
+                'MINING BALANCE UPDATE ERROR:',
+                balanceUpdateError
+              )
+
+              return NextResponse.json(
+                {
+                  error:
+                    balanceUpdateError.message,
+                },
+                {
+                  status: 500,
+                }
+              )
+            }
+          }
+        }
+
+        // =================================================
+        // NEW MINING POWER
+        // =================================================
+
+        const newDailyGold =
+          combinedInvestment *
+          activeGoldPerDollar
+
+        const secondsPerDay =
+          24 *
+          60 *
+          60
+
+        const newRatePerSecond =
+          newDailyGold /
+          secondsPerDay
+
+        const newMiningStart =
+          now
+
+       const newMiningEnd =
+  new Date(
+    newMiningStart.getTime() +
+      secondsPerDay *
+        1000
+  )
+
+        const updatedTotalEarned =
+          Number(
+            existingMiningSession.total_earned ||
+              0
+          ) +
+          previousEarnings
+
+        // =================================================
+        // UPDATE SAME MINING SESSION
+        // =================================================
+
+        const {
+          data: updatedMiningSession,
+          error: updateMiningSessionError,
         } = await supabaseAdmin
           .from('mining_sessions')
           .update({
-            active: false,
-            status: 'replaced',
+            mining_plan_id:
+              activePlan.id,
+
+            investment_amount:
+              combinedInvestment,
+
+            active:
+              true,
+
+            status:
+              'active',
+
+            started_at:
+              newMiningStart.toISOString(),
+
+            ends_at:
+              newMiningEnd.toISOString(),
+
+            last_claim_at:
+              newMiningStart.toISOString(),
+
+            rate_per_second:
+              newRatePerSecond,
+
+            reward:
+              0,
+
+            total_earned:
+              updatedTotalEarned,
           })
           .eq(
             'id',
@@ -773,17 +1185,23 @@ export async function POST(
             'active',
             true
           )
+          .select()
+          .single()
 
-        if (deactivateMiningError) {
+        if (
+          updateMiningSessionError ||
+          !updatedMiningSession
+        ) {
           console.error(
-            'OLD MINING SESSION REPLACEMENT ERROR:',
-            deactivateMiningError
+            'MINING SESSION UPDATE ERROR:',
+            updateMiningSessionError
           )
 
           return NextResponse.json(
             {
               error:
-                deactivateMiningError.message,
+                updateMiningSessionError?.message ||
+                'Failed to update the existing mining session.',
             },
             {
               status: 500,
@@ -791,145 +1209,143 @@ export async function POST(
           )
         }
 
-        previousSessionReplaced = true
+        newMiningSession =
+          updatedMiningSession
 
         console.log(
-          'OLD MINING SESSION REPLACED:',
-          existingMiningSession.id
-        )
-      }
+          'MINING SESSION UPDATED:',
+          {
+            sessionId:
+              updatedMiningSession.id,
 
-      // ===================================================
-      // CREATE NEW MINING SESSION
-      // ===================================================
-
-      const {
-        data: newMiningSession,
-        error: miningSessionError,
-      } = await supabaseAdmin
-        .from('mining_sessions')
-        .insert({
-          user_id:
             userId,
 
-          mining_plan_id:
-            miningPlan.id,
+            previousInvestment:
+              currentInvestment,
 
-          investment_amount:
-            amount,
+            addedInvestment:
+              amount,
 
-          active:
-            true,
+            combinedInvestment,
 
-          status:
-            'active',
+            previousPlanId:
+              currentPlanId,
 
-          started_at:
-            miningStart.toISOString(),
+            activePlanId:
+              activePlan.id,
 
-          ends_at:
-            miningEnd.toISOString(),
+            activePlanName:
+              activePlan.name,
 
-          last_claim_at:
-            miningStart.toISOString(),
+            dailyGold:
+              newDailyGold,
 
-          rate_per_second:
-            ratePerSecond,
+            ratePerSecond:
+              newRatePerSecond,
 
-          reward:
-            0,
+            durationDays:
+              activeDurationDays,
 
-          total_earned:
-            0,
-        })
-        .select()
-        .single()
+            miningStart:
+              newMiningStart.toISOString(),
 
-      // ===================================================
-      // NEW SESSION CREATION FAILED
-      // ===================================================
-
-      if (
-        miningSessionError ||
-        !newMiningSession
-      ) {
-        console.error(
-          'MINING SESSION CREATE ERROR:',
-          miningSessionError
-        )
-
-        // Restore the previous mining session because
-        // the replacement was not successfully created.
-        if (
-          previousSessionReplaced &&
-          existingMiningSession
-        ) {
-          const {
-            error:
-              restoreSessionError,
-          } = await supabaseAdmin
-            .from('mining_sessions')
-            .update({
-              active:
-                true,
-
-              status:
-                existingMiningSession.status ||
-                'active',
-            })
-            .eq(
-              'id',
-              existingMiningSession.id
-            )
-            .eq(
-              'user_id',
-              userId
-            )
-            .eq(
-              'active',
-              false
-            )
-
-          if (
-            restoreSessionError
-          ) {
-            console.error(
-              'OLD MINING SESSION RESTORE ERROR:',
-              restoreSessionError
-            )
+            miningEnd:
+              newMiningEnd.toISOString(),
           }
+        )
+      } else {
+        // =================================================
+        // FIRST PAID MINING DEPOSIT
+        // =================================================
+
+        const {
+          data: createdMiningSession,
+          error: miningSessionError,
+        } = await supabaseAdmin
+          .from('mining_sessions')
+          .insert({
+            user_id:
+              userId,
+
+            mining_plan_id:
+              miningPlan.id,
+
+            investment_amount:
+              amount,
+
+            active:
+              true,
+
+            status:
+              'active',
+
+            started_at:
+              miningStart.toISOString(),
+
+            ends_at:
+              miningEnd.toISOString(),
+
+            last_claim_at:
+              miningStart.toISOString(),
+
+            rate_per_second:
+              ratePerSecond,
+
+            reward:
+              0,
+
+            total_earned:
+              0,
+          })
+          .select()
+          .single()
+
+        if (
+          miningSessionError ||
+          !createdMiningSession
+        ) {
+          console.error(
+            'MINING SESSION CREATE ERROR:',
+            miningSessionError
+          )
+
+          return NextResponse.json(
+            {
+              error:
+                miningSessionError?.message ||
+                'Failed to create the mining session.',
+            },
+            {
+              status: 500,
+            }
+          )
         }
 
-        return NextResponse.json(
+        newMiningSession =
+          createdMiningSession
+
+        console.log(
+          'NEW MINING SESSION CREATED:',
           {
-            error:
-              miningSessionError?.message ||
-              'Failed to create the new mining session.',
-          },
-          {
-            status: 500,
+            sessionId:
+              createdMiningSession.id,
+
+            userId,
+
+            planId:
+              miningPlan.id,
+
+            amount,
+
+            dailyGold,
+
+            ratePerSecond,
+
+            durationDays,
           }
         )
       }
 
-      console.log(
-        'NEW MINING SESSION CREATED:',
-        {
-          sessionId:
-            newMiningSession.id,
-
-          userId,
-
-          planId:
-            miningPlan.id,
-
-          amount,
-
-          dailyGold,
-
-          ratePerSecond,
-        }
-      )
       // ===================================================
       // MARK DEPOSIT COMPLETED
       // =====================================================
@@ -1158,28 +1574,48 @@ export async function POST(
       // =====================================================
 
       try {
-        if (userEmail) {
-          await sendEmail({
-            to:
-              userEmail,
+  if (userEmail) {
+    const emailResult =
+      await sendEmail({
+        to:
+          userEmail,
 
-            subject:
-              'Mining Plan Activated',
+        subject:
+          'Mining Plan Activated',
 
-            html:
-              depositApprovedEmail(
-                amount
-              ),
-          })
-        }
-      } catch (
-        emailError
-      ) {
-        console.error(
-          'MINING PLAN APPROVAL EMAIL ERROR:',
-          emailError
-        )
+        html:
+          depositApprovedEmail(
+            amount
+          ),
+      })
+
+    if (!emailResult.success) {
+      console.error(
+        'MINING PLAN APPROVAL EMAIL FAILED:',
+        emailResult.error
+      )
+    } else {
+      console.log(
+        'MINING PLAN APPROVAL EMAIL SENT:',
+        userEmail
+      )
+    }
+  } else {
+    console.error(
+      'MINING PLAN APPROVAL EMAIL SKIPPED: USER EMAIL NOT FOUND',
+      {
+        userId,
       }
+    )
+  }
+} catch (
+  emailError
+) {
+  console.error(
+    'MINING PLAN APPROVAL EMAIL ERROR:',
+    emailError
+  )
+}
 
       // ===================================================
       // FINAL MINING AUDIT LOG

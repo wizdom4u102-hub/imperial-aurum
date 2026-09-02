@@ -218,18 +218,22 @@ export async function transferBotProfit(
     subject:
       "Bot Profit Transfer Successful",
 
-    html:
-      botProfitTransferEmail({
-        botName:
-          bot.bot_name,
+   html:
+    botProfitTransferEmail({
+      botName:
+        bot.bot_name,
 
-        amount:
-          request.amount,
+      amount:
+        request.amount,
 
-        remainingBalance:
-          (bot.available_balance ?? 0) -
-          request.amount,
-      }),
+      remainingBalance:
+        (bot.available_balance ?? 0) -
+        request.amount,
+
+        username:
+        profile.username ||
+        "User",
+    }),
   });
 
   return {

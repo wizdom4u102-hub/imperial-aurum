@@ -9,6 +9,7 @@ export async function getUserProfile(
 ): Promise<{
   email: string | null;
   name: string | null;
+  username: string | null;
 } | null> {
 
   const supabase =
@@ -19,7 +20,7 @@ export async function getUserProfile(
     error,
   } = await supabase
     .from("profiles")
-    .select("email, name")
+    .select("email, name, username")
     .eq("id", userId)
     .single();
 

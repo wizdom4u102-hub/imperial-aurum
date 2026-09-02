@@ -74,7 +74,7 @@ function HistoryTable({ data }: { data: any[] }) {
   tx.type === 'shared_plan'
 
             const amount =
-  tx.currency === 'GOLD'
+  tx.type === 'mining' || tx.currency === 'GOLD'
     ? `${isNegative ? '-' : '+'}${tx.amount}G`
     : `${isNegative ? '-' : '+'}$${tx.amount}`;
 

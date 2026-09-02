@@ -102,15 +102,48 @@ export async function POST(
 
     // ================= GET USER EMAIL =================
 
-    const {
-      data: profile,
-    } =
-      await supabaseAdmin.auth.admin.getUserById(
-        userId
-      );
+const {
+  data: profile,
+} =
+  await supabaseAdmin.auth.admin.getUserById(
+    userId
+  );
 
-    const userEmail =
-      profile.user?.email;
+const userEmail =
+  profile.user?.email;
+
+// ================= GET USERNAME =================
+
+const {
+  data: userProfile,
+  error: userProfileError,
+} = await supabaseAdmin
+  .from("profiles")
+  .select("username")
+  .eq("id", userId)
+  .single();
+
+if (
+  userProfileError ||
+  !userProfile
+) {
+  console.error(
+    "PROFILE FETCH ERROR:",
+    userProfileError
+  );
+
+  return NextResponse.json(
+    {
+      error: "User profile not found",
+    },
+    {
+      status: 404,
+    }
+  );
+}
+
+const username =
+  userProfile.username || "User";
 
     // ================= UPDATE WITHDRAWAL =================
 
@@ -177,7 +210,8 @@ export async function POST(
           to: userEmail,
           subject: "Withdrawal Request Rejected",
           html: withdrawalRejectedEmail(
-            amount
+            amount,
+           username
           ),
         });
 

@@ -16,6 +16,7 @@ type MiningPlanPayload = {
   free_daily_gold?: number
   is_free?: boolean
   is_active?: boolean
+  duration_days?: number
 }
 
 function validatePlan(
@@ -84,6 +85,17 @@ function validatePlan(
   ) {
     return 'Paid mining plans must have a Gold-per-dollar rate greater than zero.'
   }
+
+  const durationDays = Number(
+  payload.duration_days
+)
+
+if (
+  !Number.isInteger(durationDays) ||
+  durationDays <= 0
+) {
+  return 'Duration must be a whole number greater than zero.'
+}
 
   return null
 }
@@ -271,6 +283,8 @@ export async function POST(
           payload.is_free === true,
         is_active:
           payload.is_active !== false,
+                  duration_days:
+          Number(payload.duration_days),
       })
       .select()
       .single()
@@ -471,6 +485,8 @@ export async function PATCH(
           payload.is_free === true,
         is_active:
           payload.is_active !== false,
+                  duration_days:
+          Number(payload.duration_days),
       })
       .eq('id', id)
       .select()

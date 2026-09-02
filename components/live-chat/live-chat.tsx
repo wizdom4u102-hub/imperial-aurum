@@ -157,7 +157,7 @@ function VisitorLiveChat({
               </p>
 
               <p className="text-sm leading-6 text-zinc-400">
-                Have questions about our platform, mining plans, or getting
+                Have questions about our platform, mining plans, Ai Trading Bot or getting
                 started? Our support team is ready to assist you.
               </p>
             </div>

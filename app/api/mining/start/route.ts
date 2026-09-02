@@ -4,8 +4,6 @@ export const revalidate = 0
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-const FREE_MINING_DURATION_SECONDS = 24 * 60 * 60
-
 export async function POST() {
   try {
     const supabase = await createClient()
@@ -103,6 +101,25 @@ export async function POST() {
       )
     }
 
+        const durationDays =
+      Number(freePlan.duration_days)
+
+    if (
+      !Number.isInteger(durationDays) ||
+      durationDays <= 0
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'Free mining plan has an invalid duration.',
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+
     // =====================================================
     // FREE PLAN DAILY GOLD
     // =====================================================
@@ -124,9 +141,9 @@ export async function POST() {
       )
     }
 
-    const ratePerSecond =
-      dailyGold /
-      FREE_MINING_DURATION_SECONDS
+   const ratePerSecond =
+     dailyGold /
+        (24 * 60 * 60)
 
     // =====================================================
     // CREATE FREE MINING SESSION
@@ -138,8 +155,7 @@ export async function POST() {
     const end =
       new Date(
         start.getTime() +
-          FREE_MINING_DURATION_SECONDS *
-            1000
+           24 * 60 * 60 * 1000
       )
 
     const {
@@ -201,6 +217,7 @@ export async function POST() {
         userId: user.id,
         planId: freePlan.id,
         dailyGold,
+        durationDays,
         ratePerSecond,
         sessionId: session.id,
       }

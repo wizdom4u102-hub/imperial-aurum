@@ -131,17 +131,21 @@ export async function processReferral({
         continue;
       }
 
-      // Get referrer email
-      const {
-        data: referrer,
-      } = await supabaseAdmin
-        .from("profiles")
-        .select("email")
-        .eq(
-          "id",
-          currentReferrer
-        )
-        .single();
+     // Get referrer email and username
+const {
+  data: referrer,
+} = await supabaseAdmin
+  .from("profiles")
+  .select("email, username")
+  .eq(
+    "id",
+    currentReferrer
+  )
+  .single();
+
+const username =
+  referrer?.username || "User";
+
               // ==============================
       // CREDIT COMMISSION
       // ==============================
@@ -205,6 +209,7 @@ export async function processReferral({
               depositAmount: amount,
               commissionPercent: rule.percent,
               commissionAmount: commission,
+              username,
             }),
           });
         } catch (emailError) {

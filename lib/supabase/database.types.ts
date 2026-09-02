@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -1089,6 +1089,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          duration_days: number
           free_daily_gold: number
           gold_per_dollar: number
           id: string
@@ -1102,6 +1103,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          duration_days?: number
           free_daily_gold?: number
           gold_per_dollar?: number
           id?: string
@@ -1115,6 +1117,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          duration_days?: number
           free_daily_gold?: number
           gold_per_dollar?: number
           id?: string
@@ -1135,6 +1138,7 @@ export type Database = {
           investment_amount: number | null
           last_claim_at: string | null
           mining_plan_id: string | null
+          processing_at: string | null
           rate_per_second: number | null
           reward: number | null
           started_at: string | null
@@ -1149,6 +1153,7 @@ export type Database = {
           investment_amount?: number | null
           last_claim_at?: string | null
           mining_plan_id?: string | null
+          processing_at?: string | null
           rate_per_second?: number | null
           reward?: number | null
           started_at?: string | null
@@ -1163,6 +1168,7 @@ export type Database = {
           investment_amount?: number | null
           last_claim_at?: string | null
           mining_plan_id?: string | null
+          processing_at?: string | null
           rate_per_second?: number | null
           reward?: number | null
           started_at?: string | null

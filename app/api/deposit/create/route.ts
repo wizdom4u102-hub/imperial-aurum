@@ -160,6 +160,7 @@ export async function POST(req: Request) {
             minimum_amount,
             maximum_amount,
             gold_per_dollar,
+            duration_days,
             is_active,
             is_free
           `

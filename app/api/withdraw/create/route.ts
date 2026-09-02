@@ -21,6 +21,36 @@ export async function POST(req: Request) {
       );
     }
 
+    // ================= GET USERNAME =================
+
+const {
+  data: profile,
+  error: profileError,
+} = await supabase
+  .from("profiles")
+  .select("username")
+  .eq("id", user.id)
+  .single();
+
+if (profileError || !profile) {
+  console.error(
+    "PROFILE FETCH ERROR:",
+    profileError
+  );
+
+  return NextResponse.json(
+    {
+      error: "User profile not found",
+    },
+    {
+      status: 404,
+    }
+  );
+}
+
+const username =
+  profile.username || "User";
+
     // ================= BODY =================
 
     const body = await req.json();
@@ -167,7 +197,8 @@ export async function POST(req: Request) {
 
           html:
             withdrawalSubmittedEmail(
-              Number(amount)
+              Number(amount),
+               username
             ),
 
         });

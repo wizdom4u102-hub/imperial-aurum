@@ -1,11 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
 export default function Navbar() {
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  if (pathname.startsWith("/dashboard")) {
+    return null;
+  }
 
   return (
     <>
@@ -70,10 +76,10 @@ export default function Navbar() {
             </Link>
 
             <Link
-              href="/dashboard"
+              href="/signup"
               className="border border-yellow-400 hover:bg-yellow-400 hover:text-black px-5 py-2 rounded-xl font-semibold transition"
             >
-              Dashboard
+              Signup
             </Link>
 
           </div>
@@ -149,11 +155,11 @@ export default function Navbar() {
               </Link>
 
               <Link
-                href="/dashboard"
+                href="/signup"
                 onClick={() => setMobileMenuOpen(false)}
                 className="border border-yellow-400 hover:bg-yellow-400 hover:text-black text-center py-3 rounded-xl font-semibold transition"
               >
-                Dashboard
+                Signup
               </Link>
 
             </div>

@@ -18,6 +18,7 @@ type MiningPlan = {
   maximum_amount: number
   minimum_amount: number
   name: string
+  duration_days: number
 }
 
 type PlanForm = {
@@ -29,6 +30,7 @@ type PlanForm = {
   free_daily_gold: string
   is_free: boolean
   is_active: boolean
+  duration_days: string
 }
 
 const EMPTY_FORM: PlanForm = {
@@ -40,6 +42,7 @@ const EMPTY_FORM: PlanForm = {
   free_daily_gold: '',
   is_free: false,
   is_active: true,
+  duration_days: '30',
 }
 
 export default function MiningPlansAdminPage() {
@@ -117,6 +120,8 @@ export default function MiningPlansAdminPage() {
         String(plan.free_daily_gold),
       is_free: plan.is_free,
       is_active: plan.is_active,
+      duration_days:
+        String(plan.duration_days),
     })
 
     setMessage('')
@@ -174,6 +179,8 @@ export default function MiningPlansAdminPage() {
           Number(form.free_daily_gold),
         is_free: form.is_free,
         is_active: form.is_active,
+         duration_days:
+          Number(form.duration_days),
       }
 
       const response = await fetch(
@@ -250,6 +257,7 @@ export default function MiningPlansAdminPage() {
               plan.free_daily_gold,
             is_free: plan.is_free,
             is_active: !plan.is_active,
+            duration_days: plan.duration_days,
           }),
         }
       )
@@ -439,6 +447,27 @@ export default function MiningPlansAdminPage() {
                     onChange={(event) =>
                       updateForm(
                         'minimum_amount',
+                        event.target.value
+                      )
+                    }
+                    className="h-12 w-full rounded-xl border border-zinc-700 bg-black px-4 text-white outline-none focus:border-yellow-400"
+                  />
+                </div>
+
+                                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-300">
+                    Duration (Days)
+                  </label>
+
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.duration_days}
+                    onChange={(event) =>
+                      updateForm(
+                        'duration_days',
                         event.target.value
                       )
                     }
@@ -678,6 +707,16 @@ export default function MiningPlansAdminPage() {
                         {plan.is_free
                           ? 'Free'
                           : `$${minimumAmount.toLocaleString()} – $${maximumAmount.toLocaleString()}`}
+                      </p>
+                    </div>
+
+                                        <div>
+                      <p className="text-xs uppercase tracking-wider text-zinc-500">
+                        Duration
+                      </p>
+
+                      <p className="mt-1 font-bold text-white">
+                        {plan.duration_days} days
                       </p>
                     </div>
 
