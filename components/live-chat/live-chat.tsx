@@ -78,9 +78,14 @@ function VisitorLiveChat({
   }, [isOpen]);
 
   function handleOpenChat(): void {
-    setShowWelcome(false);
-    void openChat();
-  }
+  setShowWelcome(false);
+  window.dispatchEvent(
+    new CustomEvent("live-chat-state", {
+      detail: { isOpen: true },
+    }),
+  );
+  void openChat();
+}
 
   function handleCloseWelcome(): void {
     setShowWelcome(false);
@@ -93,7 +98,14 @@ function VisitorLiveChat({
         isLoading={isLoading}
         isSending={isSending}
         error={error}
-        onClose={closeChat}
+        onClose={() => {
+  window.dispatchEvent(
+    new CustomEvent("live-chat-state", {
+      detail: { isOpen: false },
+    }),
+  );
+  closeChat();
+}}
         onSendMessage={(
           message: string,
           options?: SendMessageOptions,

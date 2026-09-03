@@ -116,7 +116,37 @@ const languages = [
 
 export default function LanguageSelector() {
   const [open, setOpen] = useState(false)
+  const [isChatOpen, setIsChatOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+  function handleLiveChatState(
+    event: Event
+  ) {
+    const customEvent =
+      event as CustomEvent<{
+        isOpen: boolean
+      }>
+
+    setIsChatOpen(customEvent.detail.isOpen)
+
+    if (customEvent.detail.isOpen) {
+      setOpen(false)
+    }
+  }
+
+  window.addEventListener(
+    'live-chat-state',
+    handleLiveChatState
+  )
+
+  return () => {
+    window.removeEventListener(
+      'live-chat-state',
+      handleLiveChatState
+    )
+  }
+}, [])
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -158,16 +188,20 @@ export default function LanguageSelector() {
       encodeURIComponent(currentUrl)
   }
 
-  return (
-    <div
-      ref={containerRef}
-      className="
-        fixed
-        bottom-5
-        left-5
-        z-[99998]
-      "
-    >
+  if (isChatOpen) {
+  return null
+}
+
+return (
+  <div
+    ref={containerRef}
+    className="
+      fixed
+      bottom-5
+      left-5
+      z-[99998]
+    "
+  >
       {/* LANGUAGE BUTTON */}
       <button
         type="button"
