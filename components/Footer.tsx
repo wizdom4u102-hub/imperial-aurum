@@ -108,7 +108,7 @@ export default function Footer() {
                 href="mailto:support@imperialaurum.com"
                 className="block hover:text-yellow-400 transition-colors"
               >
-                📧 support@imperialaurum.com
+                📧 support@imperialaurummining.com
               </a>
 
               <p>
