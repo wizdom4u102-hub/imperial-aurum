@@ -15,7 +15,12 @@ export default function ContactPage() {
 
           <div>
             <p className="text-zinc-400">Email</p>
-            <p className="text-white">support@imperialaurum.com</p>
+            <a
+              href="mailto:support@imperialaurummining.com"
+              className="text-white hover:text-yellow-400 transition-colors"
+            >
+              support@imperialaurummining.com
+            </a>
           </div>
 
           <div>
