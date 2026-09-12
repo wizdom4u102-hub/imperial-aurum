@@ -154,7 +154,7 @@ const username =
         await supabaseAdmin.rpc(
           "increment_cash",
           {
-            user_id: currentReferrer,
+            user_uuid: currentReferrer,
             amount: commission,
           }
         );

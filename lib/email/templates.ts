@@ -137,7 +137,7 @@ export function welcomeEmail(name?: string) {
   return emailLayout(
     "Welcome to Imperial Aurum Mining",
     `
-<p>Hello <strong>${name || "Investor"}</strong>,</p>
+ <p>Hello <strong>${name}</strong>,</p>
 
 <p>
 Welcome to <strong>Imperial Aurum Mining</strong>.
@@ -173,7 +173,7 @@ export function passwordChangedEmail(name?: string) {
   return emailLayout(
     "Your Password Has Been Changed",
     `
-      <p>Hello <strong>${name || "Investor"}</strong>,</p>
+       <p>Hello <strong>${name}</strong>,</p>
 
       <p>
         This email confirms that the password for your
@@ -205,7 +205,7 @@ export function passwordResetSuccessEmail(name?: string) {
   return emailLayout(
     "Password Reset Successful",
     `
-      <p>Hello <strong>${name || "Investor"}</strong>,</p>
+       <p>Hello <strong>${name}</strong>,</p>
 
       <p>
         Your <strong>Imperial Aurum Mining</strong> account password has been reset successfully.
@@ -242,7 +242,7 @@ export function depositSubmittedEmail(
   return emailLayout(
     "Deposit Request Received",
     `
-      <p>Hello <strong>${name || "Investor"}</strong>,</p>
+       <p>Hello <strong>${name}</strong>,</p>
 
       <p>
         We have successfully received your deposit request.
@@ -307,7 +307,7 @@ export function depositApprovedEmail(
   return emailLayout(
     "Deposit Approved",
     `
-      <p>Hello <strong>${name || "Investor"}</strong>,</p>
+       <p>Hello <strong>${name}</strong>,</p>
 
       <p>
         Congratulations!
@@ -366,7 +366,7 @@ export function depositRejectedEmail(
   return emailLayout(
     "Deposit Rejected",
     `
-      <p>Hello <strong>${name || "Investor"}</strong>,</p>
+       <p>Hello <strong>${name}</strong>,</p>
 
       <p>
         Unfortunately, your recent deposit request could not be approved.
@@ -892,6 +892,118 @@ export function dashboardProfitTransferEmail({
       <p>
         Thank you for choosing
         <strong>Imperial Aurum Mining.</strong>
+      </p>
+    `
+  );
+}
+
+/* ================================
+   ⛏️ DAILY MINING REMINDER
+================================ */
+
+export function dailyMiningReminderEmail({
+  name,
+  planName,
+  miningDate,
+  goldAmount,
+}: {
+  name: string;
+  planName: string;
+  miningDate: string;
+  goldAmount: number;
+}) {
+  return emailLayout(
+    "Your Daily Mining Reward Is Ready",
+    `
+      <p>Hello <strong>${name}</strong>,</p>
+
+      <p>
+        Your daily mining period has ended and your mining reward for
+        <strong>${miningDate}</strong> is ready to be claimed.
+      </p>
+
+      <table
+        width="100%"
+        cellpadding="10"
+        cellspacing="0"
+        style="
+          background:#27272a;
+          border-radius:10px;
+          margin:25px 0;
+          color:#ffffff;
+        "
+      >
+        <tr>
+          <td>
+            <strong>Mining Plan</strong>
+          </td>
+
+          <td align="right">
+            ${planName}
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <strong>Mining Date</strong>
+          </td>
+
+          <td align="right">
+            ${miningDate}
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <strong>Daily Gold Reward</strong>
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#facc15;
+              font-weight:bold;
+              font-size:18px;
+            "
+          >
+            ${goldAmount.toFixed(2)} Gold
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <strong>Status</strong>
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#facc15;
+              font-weight:bold;
+            "
+          >
+            Ready to Claim
+          </td>
+        </tr>
+      </table>
+
+      <p>
+        Please visit your dashboard to claim your available mining reward.
+      </p>
+
+      <p>
+        If you are using a paid Mining Plan, your mining continues according
+        to your active plan even if you do not visit the dashboard.
+      </p>
+
+      <p>
+        Thank you for choosing
+        <strong>Imperial Aurum Mining.</strong>
+      </p>
+
+      <p>
+        Best regards,<br>
+        <strong>Imperial Aurum Mining Team</strong>
       </p>
     `
   );

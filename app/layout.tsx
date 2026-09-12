@@ -6,6 +6,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import VisitorTrackingProvider from "@/components/visitor-tracking-provider";
+import SmartsuppChat from "@/components/smartsupp-chat";
 
 export const metadata: Metadata = {
   title: "Imperial Aurum",
@@ -32,7 +33,6 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-full">
-        <VisitorTrackingProvider />
         <AppNavbar />
 
         <LayoutExtras />
@@ -74,6 +74,7 @@ export default function RootLayout({
           `}
         </Script>
 
+        <SmartsuppChat />
       </body>
     </html>
   );

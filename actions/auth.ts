@@ -182,52 +182,68 @@ export async function signupAction(formData: FormData) {
   // ==============================
 
   if (referrerId) {
-    // Give referrer 1000 Gold
-    const { error: rewardError } =
-      await supabase.rpc(
-        "increment_gold_balance",
-        {
-          user_id: referrerId,
-          amount: 1000,
-        }
-      );
+  // Give referrer 1000 Gold
+  const { error: rewardError } = await supabase.rpc(
+    "update_balance_atomic",
+    {
+      p_user_id: referrerId,
+      p_action: "gold",
+      p_amount: 1000,
+    }
+  );
 
-    if (rewardError) {
-      console.error(
-        "Referrer reward error:",
-        rewardError
-      );
-    } else {
-      // Get referrer's email and username
-      const {
-        data: referrerProfile,
-      } = await supabase
-        .from("profiles")
-        .select("email, username")
-        .eq("id", referrerId)
-        .single();
+  if (rewardError) {
+    console.error(
+      "Referrer reward error:",
+      rewardError
+    );
+  } else {
+    const { error: transactionError } = await supabase.rpc(
+  "create_referral_bonus_transaction",
+  {
+    p_referrer_id: referrerId,
+    p_amount: 1000,
+    p_new_user_id: userId,
+  }
+);
 
-      if (referrerProfile?.email) {
-        try {
-          await sendEmail({
-            to: referrerProfile.email,
-            subject: "You Earned 1000 Gold!",
-            html: referralSignupBonusEmail({
-              name:
-                referrerProfile.username ||
-                "Investor",
-              newUserName: username,
-            }),
-          });
-        } catch (emailError) {
-          console.error(
-            "Referral registration email error:",
-            emailError
-          );
-        }
+if (transactionError) {
+  console.error(
+    "Referral transaction error:",
+    transactionError
+  );
+}
+    
+    // Get referrer's email and username
+    const {
+      data: referrerProfile,
+    } = await supabase
+      .from("profiles")
+      .select("email, username")
+      .eq("id", referrerId)
+      .single();
+
+    if (referrerProfile?.email) {
+      try {
+        await sendEmail({
+          to: referrerProfile.email,
+          subject: "You Earned 1000 Gold!",
+          html: referralSignupBonusEmail({
+            name:
+              referrerProfile.username ||
+              "Investor",
+            newUserName: username,
+          }),
+        });
+      } catch (emailError) {
+        console.error(
+          "Referral registration email error:",
+          emailError
+        );
       }
     }
   }
+}
 
   return redirect(
     "/dashboard?message=Check your email to confirm your account"

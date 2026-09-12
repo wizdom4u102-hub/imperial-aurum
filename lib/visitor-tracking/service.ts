@@ -43,6 +43,8 @@ export async function createVisitorSession(
         input.operatingSystem ?? undefined,
       p_referral_code:
         input.referralCode ?? undefined,
+      p_country:
+       input.country ?? undefined,
     },
   );
 

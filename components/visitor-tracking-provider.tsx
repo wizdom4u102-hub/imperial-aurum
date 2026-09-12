@@ -8,7 +8,6 @@ import type {
 } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/client";
-import LiveChat from "@/components/live-chat/live-chat";
 import { useVisitorTracking } from "@/hooks/use-visitor-tracking";
 
 export default function VisitorTrackingProvider() {
@@ -68,14 +67,5 @@ export default function VisitorTrackingProvider() {
     return null;
   }
 
-  return (
-    <>
-      {visitorTracking.isInitialized ? (
-        <LiveChat
-          sessionId={visitorTracking.sessionId}
-          userId={visitorTracking.userId}
-        />
-      ) : null}
-    </>
-  );
+  return null;
 }

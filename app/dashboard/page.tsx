@@ -242,46 +242,35 @@ export default async function DashboardPage() {
     }
 
 
-    // ================= MINING SESSION =================
+        // ================= MINING SESSION =================
+    //
+    // IMPORTANT:
+    // Load the latest session regardless of status.
+    //
+    // Paid mining may be completed while its accumulated
+    // reward remains claimable through Mine Now.
+    //
+    // Free mining may be paused after a completed 24-hour
+    // cycle and must remain visible to the client so Mine
+    // Now can start the next cycle correctly.
+    //
+    // The mining API remains responsible for settlement,
+    // reward calculation, and balance crediting.
+    // =================
 
     const {
       data: session,
       error: sessionError,
     } =
       await supabase
-        .from(
-          'mining_sessions'
-        )
+        .from('mining_sessions')
         .select('*')
-        .eq(
-          'user_id',
-          user.id
-        )
-        .eq(
-          'status',
-          'active'
-        )
-        .order(
-          'started_at',
-          {
-            ascending:
-              false,
-          }
-        )
+        .eq('user_id', user.id)
+        .order('started_at', {
+          ascending: false,
+        })
         .limit(1)
         .maybeSingle()
-
-
-    if (sessionError) {
-      console.error(
-        '❌ SESSION ERROR:',
-        JSON.stringify(
-          sessionError,
-          null,
-          2
-        )
-      )
-    }
 
         // ================= CURRENT MINING PLAN =================
 

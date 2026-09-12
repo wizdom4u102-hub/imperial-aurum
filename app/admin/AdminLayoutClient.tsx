@@ -2,7 +2,6 @@
 
 import { useEffect,  useCallback, useState } from 'react'
 import Link from 'next/link'
-import AdminPushNotifications from "@/components/admin/admin-push-notifications";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
@@ -22,45 +21,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   })
 
   const [isMobileOpen, setIsMobileOpen] = useState(false)
-  const [unreadLiveChatCount, setUnreadLiveChatCount] = useState(0)
+  
 
-  useEffect(() => {
-  async function loadUnreadLiveChatCount() {
-    try {
-      const response = await fetch("/api/admin/live-chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "get-unread-count",
-        }),
-      })
-
-      const result = await response.json()
-
-      if (response.ok && result.success) {
-        setUnreadLiveChatCount(result.data ?? 0)
-      }
-    } catch (error) {
-      console.error(
-        "Failed to load unread live chat count:",
-        error,
-      )
-    }
-  }
-
-  void loadUnreadLiveChatCount()
-
-  const interval = window.setInterval(
-    loadUnreadLiveChatCount,
-    5000,
-  )
-
-  return () => {
-    window.clearInterval(interval)
-  }
-}, [])
 
   const handleAdminTimeout = useCallback(() => {
     window.location.href = '/login/admin'
@@ -514,21 +476,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
 
               {/* New Live Chat */}
-<div>
-  <Link
-    href="/admin/live-chat"
-    onClick={closeMobileMenu}
-    className="flex w-full items-center justify-between gap-3 rounded-2xl px-5 py-3.5 font-medium text-white transition-all hover:bg-zinc-800"
-  >
-    <span>💬 New Live Chat</span>
-
-    {unreadLiveChatCount > 0 && (
-      <span className="ml-auto shrink-0 rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-bold text-white">
-        {unreadLiveChatCount}
-      </span>
-    )}
-  </Link>
-</div>
 
               {/* Live Chat */}
               <div>
@@ -561,9 +508,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main Content */}
       <div className="flex-1 overflow-auto lg:ml-0">
         <div className="p-6 lg:p-8 pt-16 lg:pt-8">
-           <div className="mb-6">
-            <AdminPushNotifications />
-            </div>
+           
 
           {children}
         </div>

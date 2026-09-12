@@ -4,21 +4,19 @@ export const revalidate = 0
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-const PROCESSING_LOCK_TIMEOUT =
-  30 * 1000
-
-const CLAIM_CYCLE_SECONDS =
-  24 * 60 * 60
+const CLAIM_CYCLE_SECONDS = 24 * 60 * 60
 
 export async function GET() {
   try {
-    const supabase =
-      await createClient()
+    const supabase = await createClient()
+
+    // =====================================================
+    // AUTHENTICATED USER
+    // =====================================================
 
     const {
       data: { user },
-    } =
-      await supabase.auth.getUser()
+    } = await supabase.auth.getUser()
 
     if (!user) {
       return NextResponse.json(
@@ -33,60 +31,27 @@ export async function GET() {
     }
 
     // =====================================================
-    // GET ACTIVE MINING SESSION
+    // GET LATEST MINING SESSION
     // =====================================================
 
     const {
       data: session,
       error: sessionError,
-    } =
-      await supabase
-        .from('mining_sessions')
-        .select('*')
-        .eq(
-          'user_id',
-          user.id
-        )
-        .eq(
-          'active',
-          true
-        )
-        .maybeSingle()
-
-    console.log(
-      'MINING SESSION:',
-      session
-    )
-
-    console.log(
-      'SESSION FOUND:',
-      {
-        id:
-          session?.id,
-        active:
-          session?.active,
-        status:
-          session?.status,
-        started_at:
-          session?.started_at,
-        ends_at:
-          session?.ends_at,
-        last_claim_at:
-          session?.last_claim_at,
-        total_earned:
-          session?.total_earned,
-        investment_amount:
-          session?.investment_amount,
-        processing_at:
-          session?.processing_at,
-      }
-    )
+    } = await supabase
+      .from('mining_sessions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('started_at', {
+        ascending: false,
+      })
+      .limit(1)
+      .maybeSingle()
 
     if (sessionError) {
-      throw new Error(
-        sessionError.message
-      )
+      throw new Error(sessionError.message)
     }
+
+    console.log('MINING SESSION:', session)
 
     if (!session) {
       return NextResponse.json({
@@ -95,11 +60,9 @@ export async function GET() {
       })
     }
 
-    if (!session.ends_at) {
-      throw new Error(
-        'Mining session end time is missing.'
-      )
-    }
+    // =====================================================
+    // REQUIRED SESSION DATES
+    // =====================================================
 
     if (!session.started_at) {
       throw new Error(
@@ -107,238 +70,383 @@ export async function GET() {
       )
     }
 
+    if (!session.ends_at) {
+      throw new Error(
+        'Mining session end time is missing.'
+      )
+    }
+
+    const startTime = new Date(
+      session.started_at
+    ).getTime()
+
+    const endTime = new Date(
+      session.ends_at
+    ).getTime()
+
+    if (
+      !Number.isFinite(startTime) ||
+      !Number.isFinite(endTime)
+    ) {
+      throw new Error(
+        'Mining session contains an invalid date.'
+      )
+    }
+
     // =====================================================
-    // SESSION TIME
+    // DETERMINE MINING TYPE
+    //
+    // investment_amount > 0 = paid mining
+    // investment_amount <= 0 = free mining
     // =====================================================
 
-    const endTime =
-      new Date(
-        session.ends_at
-      ).getTime()
-
-    const now =
-      Date.now()
-
-    console.log({
-      now,
-      endTime,
-      remaining:
-        endTime - now,
-    })
-
-    // =====================================================
-    // DETERMINE 24-HOUR CLAIM WINDOW
-    // =====================================================
-
-    const lastClaimTime =
-      session.last_claim_at
-        ? new Date(
-            session.last_claim_at
-          ).getTime()
-        : new Date(
-            session.started_at
-          ).getTime()
-
-    const nextClaimTime =
-      lastClaimTime +
-      CLAIM_CYCLE_SECONDS * 1000
-
-    const claimIsReady =
-      now >= nextClaimTime
-
-    console.log(
-      'MINING CLAIM WINDOW:',
-      {
-        sessionId:
-          session.id,
-
-        lastClaimTime,
-
-        nextClaimTime,
-
-        now,
-
-        claimIsReady,
-
-        remainingUntilClaim:
-          Math.max(
-            0,
-            nextClaimTime - now
-          ),
-
-        remainingHours:
-          Math.max(
-            0,
-            nextClaimTime - now
-          ) /
-          1000 /
-          60 /
-          60,
-      }
+    const investmentAmount = Number(
+      session.investment_amount || 0
     )
 
+    const isPaidMining =
+      investmentAmount > 0
+
+    const isFreeMining =
+      investmentAmount <= 0
+
     // =====================================================
-    // 24-HOUR CYCLE NOT COMPLETE
+    // COMPLETED SESSION
+    //
+    // IMPORTANT:
+    //
+    // A paid session may be completed while it still has
+    // unclaimed reward in session.reward.
+    //
+    // Mine Now is responsible for claiming that reward.
     // =====================================================
 
-    if (!claimIsReady) {
+    if (session.status === 'completed') {
       return NextResponse.json({
         success: true,
-
         session,
-
         claimed: 0,
-
         credited: 0,
-
         principal_returned: 0,
-
-        total_earned:
-          Number(
-            session.total_earned ||
-              0
-          ),
-
-        completed: false,
+        reward: Number(
+          session.reward || 0
+        ),
+        total_earned: Number(
+          session.total_earned || 0
+        ),
+        completed: true,
+        paused: false,
       })
     }
 
     // =====================================================
-    // FULL 24-HOUR CYCLE IS READY
+    // PAUSED SESSION
     // =====================================================
 
-    const claimEndTime =
-      Math.min(
-        nextClaimTime,
-        endTime
-      )
+    if (session.status === 'paused') {
+      const now = Date.now()
 
-    const claimSeconds =
-      Math.max(
-        0,
-        Math.floor(
-          (
-            claimEndTime -
-            lastClaimTime
-          ) / 1000
+      // -----------------------------------------------------
+      // PAID SESSION
+      //
+      // A paid session should only be paused while its
+      // original plan is still valid.
+      // -----------------------------------------------------
+
+      if (isPaidMining) {
+        if (now >= endTime) {
+          const {
+            data: completedRows,
+            error: completionError,
+          } = await supabase
+            .from('mining_sessions')
+            .update({
+              active: false,
+              status: 'completed',
+              processing_at: null,
+            })
+            .eq('id', session.id)
+            .eq('user_id', user.id)
+            .eq('active', false)
+            .eq('status', 'paused')
+            .select()
+
+          if (completionError) {
+            throw new Error(
+              completionError.message
+            )
+          }
+
+          const completedSession =
+            completedRows?.[0] || session
+
+          return NextResponse.json({
+            success: true,
+            session: completedSession,
+            claimed: 0,
+            credited: 0,
+            principal_returned: 0,
+            reward: Number(
+              completedSession.reward || 0
+            ),
+            total_earned: Number(
+              completedSession.total_earned || 0
+            ),
+            completed: true,
+            paused: false,
+          })
+        }
+
+        return NextResponse.json({
+          success: true,
+          session,
+          claimed: 0,
+          credited: 0,
+          principal_returned: 0,
+          reward: Number(
+            session.reward || 0
+          ),
+          total_earned: Number(
+            session.total_earned || 0
+          ),
+          completed: false,
+          paused: true,
+        })
+      }
+
+      // -----------------------------------------------------
+      // FREE SESSION
+      // -----------------------------------------------------
+
+      return NextResponse.json({
+        success: true,
+        session,
+        claimed: 0,
+        credited: 0,
+        principal_returned: 0,
+        reward: Number(
+          session.reward || 0
+        ),
+        total_earned: Number(
+          session.total_earned || 0
+        ),
+        completed: false,
+        paused: true,
+      })
+    }
+
+    // =====================================================
+    // CURRENT TIME
+    // =====================================================
+
+    const now = Date.now()
+
+    // =====================================================
+    // DETERMINE LAST ACCRUAL TIME
+    //
+    // last_claim_at is being used as the point through
+    // which mining profit has already been accumulated.
+    //
+    // If it is missing, the session start time is used.
+    // =====================================================
+
+    let lastClaimTime = startTime
+
+    if (session.last_claim_at) {
+      const parsedLastClaimTime =
+        new Date(
+          session.last_claim_at
+        ).getTime()
+
+      if (
+        Number.isFinite(
+          parsedLastClaimTime
         )
-      )
-
-    const ratePerSecond =
-      Number(
-        session.rate_per_second ||
-          0
-      )
-
-    const earned =
-      ratePerSecond *
-      claimSeconds
-
-    console.log(
-      'MINING 24-HOUR CLAIM:',
-      {
-        sessionId:
-          session.id,
-
-        lastClaimTime,
-
-        nextClaimTime,
-
-        claimEndTime,
-
-        claimSeconds,
-
-        ratePerSecond,
-
-        earned,
+      ) {
+        lastClaimTime =
+          parsedLastClaimTime
       }
-    )
+    }
 
-    // =====================================================
-    // NOTHING TO CLAIM
-    // =====================================================
+    // Never accrue before the session started.
+    if (lastClaimTime < startTime) {
+      lastClaimTime = startTime
+    }
 
-    if (
-      claimSeconds <= 0
-    ) {
-      return NextResponse.json({
-        success: true,
-
-        session,
-
-        claimed: 0,
-
-        credited: 0,
-
-        principal_returned: 0,
-
-        total_earned:
-          Number(
-            session.total_earned ||
-              0
-          ),
-
-        completed: false,
-      })
+    // Never accrue beyond the plan's end.
+    if (lastClaimTime > endTime) {
+      lastClaimTime = endTime
     }
 
     // =====================================================
-    // LOCK SESSION
+    // PAID MINING
+    //
+    // IMPORTANT BUSINESS LOGIC:
+    //
+    // Paid mining accrues continuously.
+    //
+    // The user DOES NOT need to click Mine Now every
+    // 24 hours.
+    //
+    // If the user waits:
+    //
+    // 1 day  -> 1 day of profit is accumulated
+    // 3 days -> 3 days of profit is accumulated
+    // 7 days -> 7 days of profit is accumulated
+    //
+    // Mine Now is the CLAIM action.
+    //
+    // This route does NOT credit balances.gold.
     // =====================================================
 
-    console.log(
-      'STATUS BEFORE LOCK:',
-      session.status
-    )
+    if (isPaidMining) {
+      // -----------------------------------------------------
+      // ACCRUE ONLY THROUGH THE CURRENT TIME OR PLAN END
+      // -----------------------------------------------------
 
-    const nowForLock =
-      Date.now()
+      const accrualEndTime =
+        Math.min(now, endTime)
 
-    const processingAt =
-      session.processing_at
-        ? new Date(
-            session.processing_at
-          ).getTime()
-        : 0
+      const elapsedMilliseconds =
+        Math.max(
+          0,
+          accrualEndTime -
+            lastClaimTime
+        )
 
-    const processingLockAge =
-      processingAt > 0
-        ? nowForLock -
-          processingAt
-        : Number.POSITIVE_INFINITY
+      const elapsedSeconds =
+        Math.floor(
+          elapsedMilliseconds / 1000
+        )
 
-    let lockedSession:
-      | typeof session
-      | null = null
+      const ratePerSecond =
+        Number(
+          session.rate_per_second || 0
+        )
 
-    let lockError:
-      | Error
-      | null = null
+      const accumulatedReward =
+        ratePerSecond > 0 &&
+        elapsedSeconds > 0
+          ? ratePerSecond *
+            elapsedSeconds
+          : 0
 
-    // =====================================================
-    // ACTIVE SESSION — ACQUIRE LOCK
-    // =====================================================
+      const existingReward =
+        Number(
+          session.reward || 0
+        )
 
-    if (
-      session.status ===
-      'active'
-    ) {
-      const {
-        data,
-        error,
-      } =
-        await supabase
-          .from(
-            'mining_sessions'
-          )
+      const existingTotalEarned =
+        Number(
+          session.total_earned || 0
+        )
+
+      // -----------------------------------------------------
+      // NO NEW PROFIT TO ACCUMULATE
+      // -----------------------------------------------------
+
+      if (accumulatedReward <= 0) {
+        // ---------------------------------------------------
+        // PLAN HAS EXPIRED
+        // ---------------------------------------------------
+
+        if (now >= endTime) {
+          const {
+            data: completedRows,
+            error: completionError,
+          } = await supabase
+            .from('mining_sessions')
+            .update({
+              active: false,
+              status: 'completed',
+              processing_at: null,
+            })
+            .eq('id', session.id)
+            .eq('user_id', user.id)
+            .eq('active', true)
+            .eq('status', 'active')
+            .select()
+
+          if (completionError) {
+            throw new Error(
+              completionError.message
+            )
+          }
+
+          const completedSession =
+            completedRows?.[0] || session
+
+          return NextResponse.json({
+            success: true,
+            session: completedSession,
+            claimed: 0,
+            credited: 0,
+            principal_returned: 0,
+            reward: Number(
+              completedSession.reward || 0
+            ),
+            total_earned: Number(
+              completedSession.total_earned || 0
+            ),
+            completed: true,
+            paused: false,
+          })
+        }
+
+        // ---------------------------------------------------
+        // PLAN STILL ACTIVE
+        // ---------------------------------------------------
+
+        return NextResponse.json({
+          success: true,
+          session,
+          claimed: 0,
+          credited: 0,
+          principal_returned: 0,
+          reward: existingReward,
+          total_earned:
+            existingTotalEarned,
+          completed: false,
+          paused: false,
+        })
+      }
+
+      // =====================================================
+      // ATOMIC PAID PROFIT ACCRUAL
+      //
+      // The update includes the exact last_claim_at value
+      // that was read above.
+      //
+      // If another request has already processed this
+      // session between the SELECT and this UPDATE, the
+      // last_claim_at value will no longer match and this
+      // update will affect zero rows.
+      //
+      // This prevents the same elapsed period from being
+      // credited twice by concurrent requests.
+      // =====================================================
+
+      const previousLastClaimAt =
+        session.last_claim_at
+
+      let updateQuery =
+        supabase
+          .from('mining_sessions')
           .update({
-            status:
-              'processing',
+            reward:
+              existingReward +
+              accumulatedReward,
 
-            processing_at:
+            total_earned:
+              existingTotalEarned +
+              accumulatedReward,
+
+            last_claim_at:
               new Date(
-                nowForLock
+                accrualEndTime
               ).toISOString(),
+
+            processing_at: null,
           })
           .eq(
             'id',
@@ -356,209 +464,56 @@ export async function GET() {
             'status',
             'active'
           )
-          .select()
-          .maybeSingle()
 
-      lockedSession =
-        data
+      // -----------------------------------------------------
+      // ATOMIC CHECK FOR last_claim_at
+      //
+      // When last_claim_at was NULL, explicitly require NULL.
+      // Otherwise require the exact timestamp previously read.
+      // -----------------------------------------------------
 
-      lockError =
-        error
-    }
+      if (previousLastClaimAt === null) {
+        updateQuery =
+          updateQuery.is(
+            'last_claim_at',
+            null
+          )
+      } else {
+        updateQuery =
+          updateQuery.eq(
+            'last_claim_at',
+            previousLastClaimAt
+          )
+      }
 
-    // =====================================================
-    // STALE PROCESSING SESSION — RECOVER LOCK
-    // =====================================================
+      const {
+        data: updatedRows,
+        error: updateError,
+      } = await updateQuery.select()
 
-    else if (
-      session.status ===
-        'processing' &&
-      processingLockAge >=
-        PROCESSING_LOCK_TIMEOUT
-    ) {
-      console.log(
-        'STALE MINING LOCK DETECTED:',
-        {
-          sessionId:
-            session.id,
+      if (updateError) {
+        throw new Error(
+          updateError.message
+        )
+      }
 
-          processingAt:
-            session.processing_at,
-
-          processingLockAge,
-        }
-      )
-
-      const newProcessingAt =
-        new Date(
-          nowForLock
-        ).toISOString()
+      // -----------------------------------------------------
+      // CONCURRENT REQUEST LOST THE ATOMIC CLAIM
+      //
+      // Another request already processed the elapsed
+      // period. Return the latest session instead of
+      // adding the same reward again.
+      // -----------------------------------------------------
 
       if (
-        session.processing_at
+        !updatedRows ||
+        updatedRows.length === 0
       ) {
         const {
-          data,
-          error,
-        } =
-          await supabase
-            .from(
-              'mining_sessions'
-            )
-            .update({
-              processing_at:
-                newProcessingAt,
-            })
-            .eq(
-              'id',
-              session.id
-            )
-            .eq(
-              'user_id',
-              user.id
-            )
-            .eq(
-              'active',
-              true
-            )
-            .eq(
-              'status',
-              'processing'
-            )
-            .eq(
-              'processing_at',
-              session.processing_at
-            )
-            .select()
-            .maybeSingle()
-
-        lockedSession =
-          data
-
-        lockError =
-          error
-      } else {
-        const {
-          data,
-          error,
-        } =
-          await supabase
-            .from(
-              'mining_sessions'
-            )
-            .update({
-              processing_at:
-                newProcessingAt,
-            })
-            .eq(
-              'id',
-              session.id
-            )
-            .eq(
-              'user_id',
-              user.id
-            )
-            .eq(
-              'active',
-              true
-            )
-            .eq(
-              'status',
-              'processing'
-            )
-            .is(
-              'processing_at',
-              null
-            )
-            .select()
-            .maybeSingle()
-
-        lockedSession =
-          data
-
-        lockError =
-          error
-      }
-    }
-
-    // =====================================================
-    // CURRENTLY PROCESSING
-    // =====================================================
-
-    else if (
-      session.status ===
-        'processing' &&
-      processingLockAge <
-        PROCESSING_LOCK_TIMEOUT
-    ) {
-      console.log(
-        'MINING SESSION IS CURRENTLY PROCESSING:',
-        {
-          sessionId:
-            session.id,
-
-          processingAt:
-            session.processing_at,
-
-          processingLockAge,
-        }
-      )
-
-      return NextResponse.json({
-        success: true,
-
-        session,
-
-        claimed: 0,
-
-        credited: 0,
-
-        principal_returned: 0,
-
-        total_earned:
-          Number(
-            session.total_earned ||
-              0
-          ),
-
-        completed: false,
-      })
-    }
-
-    console.log(
-      'LOCKED SESSION:',
-      lockedSession
-    )
-
-    console.log(
-      'LOCK ERROR:',
-      lockError
-    )
-
-    // =====================================================
-    // LOCK FAILED
-    // =====================================================
-
-    if (
-      lockError
-    ) {
-      throw new Error(
-        lockError.message
-      )
-    }
-
-    if (
-      !lockedSession
-    ) {
-      const {
-        data: latest,
-        error:
-          latestError,
-      } =
-        await supabase
-          .from(
-            'mining_sessions'
-          )
+          data: latestSession,
+          error: latestSessionError,
+        } = await supabase
+          .from('mining_sessions')
           .select('*')
           .eq(
             'id',
@@ -570,218 +525,267 @@ export async function GET() {
           )
           .maybeSingle()
 
-      if (latestError) {
-        throw new Error(
-          latestError.message
-        )
-      }
+        if (latestSessionError) {
+          throw new Error(
+            latestSessionError.message
+          )
+        }
 
-      if (!latest) {
+        if (!latestSession) {
+          throw new Error(
+            'Mining session could not be found after concurrent update.'
+          )
+        }
+
         return NextResponse.json({
-          success: false,
-          session: null,
+          success: true,
+          session: latestSession,
           claimed: 0,
           credited: 0,
           principal_returned: 0,
-          completed: false,
+          reward: Number(
+            latestSession.reward || 0
+          ),
+          total_earned: Number(
+            latestSession.total_earned || 0
+          ),
+          completed:
+            latestSession.status ===
+            'completed',
+          paused:
+            latestSession.status ===
+            'paused',
         })
       }
 
-      return NextResponse.json({
-        success: true,
+      const updatedSession =
+        updatedRows[0]
 
-        session:
-          latest,
-
-        claimed: 0,
-
-        credited: 0,
-
-        principal_returned: 0,
-
-        total_earned:
-          Number(
-            latest.total_earned ||
-              0
-          ),
-
-        completed:
-          latest.active ===
-          false,
-      })
-    }
-
-    // =====================================================
-    // RECALCULATE FROM LOCKED SESSION
-    // =====================================================
-
-    if (
-      !lockedSession.started_at
-    ) {
-      throw new Error(
-        'Mining session start time is missing.'
-      )
-    }
-
-    if (
-      !lockedSession.ends_at
-    ) {
-      throw new Error(
-        'Mining session end time is missing.'
-      )
-    }
-
-    const lockedLastClaimTime =
-      lockedSession.last_claim_at
-        ? new Date(
-            lockedSession.last_claim_at
-          ).getTime()
-        : new Date(
-            lockedSession.started_at
-          ).getTime()
-
-    const lockedEndTime =
-      new Date(
-        lockedSession.ends_at
-      ).getTime()
-
-    const lockedNow =
-      Date.now()
-
-    const lockedNextClaimTime =
-      lockedLastClaimTime +
-      CLAIM_CYCLE_SECONDS * 1000
-
-    // =====================================================
-    // ONLY COMPLETE 24-HOUR CYCLES CAN BE CLAIMED
-    // =====================================================
-
-    if (
-      lockedNow <
-      lockedNextClaimTime
-    ) {
-      await supabase
-        .from(
-          'mining_sessions'
+      if (!updatedSession) {
+        throw new Error(
+          'Paid mining session update returned no session.'
         )
-        .update({
-          status:
+      }
+
+      // =====================================================
+      // PAID PLAN EXPIRED
+      //
+      // The final profit through ends_at has already been
+      // accumulated above.
+      //
+      // The reward remains inside session.reward for Mine Now.
+      // =====================================================
+
+      if (
+        accrualEndTime >= endTime
+      ) {
+        const {
+          data: completedRows,
+          error: completionError,
+        } = await supabase
+          .from('mining_sessions')
+          .update({
+            active: false,
+            status: 'completed',
+            processing_at: null,
+          })
+          .eq(
+            'id',
+            updatedSession.id
+          )
+          .eq(
+            'user_id',
+            user.id
+          )
+          .eq(
             'active',
+            true
+          )
+          .eq(
+            'status',
+            'active'
+          )
+          .select()
 
-          processing_at:
-            null,
+        if (completionError) {
+          throw new Error(
+            completionError.message
+          )
+        }
+
+        const completedSession =
+          completedRows?.[0] ||
+          updatedSession
+
+        console.log(
+          'PAID MINING PLAN COMPLETED:',
+          {
+            sessionId:
+              completedSession.id,
+
+            endsAt:
+              completedSession.ends_at,
+
+            reward:
+              completedSession.reward,
+
+            totalEarned:
+              completedSession.total_earned,
+          }
+        )
+
+        return NextResponse.json({
+          success: true,
+          session:
+            completedSession,
+          claimed: 0,
+          credited: 0,
+          principal_returned: 0,
+          reward: Number(
+            completedSession.reward || 0
+          ),
+          total_earned: Number(
+            completedSession.total_earned || 0
+          ),
+          completed: true,
+          paused: false,
         })
-        .eq(
-          'id',
-          lockedSession.id
-        )
-        .eq(
-          'user_id',
-          user.id
-        )
-        .eq(
-          'active',
-          true
-        )
-        .eq(
-          'status',
-          'processing'
-        )
+      }
+
+      // =====================================================
+      // PAID PLAN STILL ACTIVE
+      // =====================================================
 
       return NextResponse.json({
         success: true,
-
         session:
-          lockedSession,
-
+          updatedSession,
         claimed: 0,
-
         credited: 0,
-
         principal_returned: 0,
-
-        total_earned:
-          Number(
-            lockedSession.total_earned ||
-              0
-          ),
-
+        reward: Number(
+          updatedSession.reward || 0
+        ),
+        total_earned: Number(
+          updatedSession.total_earned || 0
+        ),
         completed: false,
+        paused: false,
       })
     }
 
-    const lockedClaimEndTime =
-      Math.min(
-        lockedNextClaimTime,
-        lockedEndTime
-      )
+    // =====================================================
+    // FREE MINING
+    //
+    // Free mining is different from paid mining.
+    //
+    // It runs one 24-hour cycle and automatically credits
+    // the earned GOLD at the end of that cycle.
+    // =====================================================
 
-    const lockedClaimSeconds =
-      Math.max(
-        0,
-        Math.floor(
-          (
-            lockedClaimEndTime -
-            lockedLastClaimTime
-          ) / 1000
+    if (isFreeMining) {
+      const freeCycleEndTime =
+        Math.min(
+          lastClaimTime +
+            CLAIM_CYCLE_SECONDS *
+              1000,
+          endTime
         )
+
+      const freeCycleMilliseconds =
+        Math.max(
+          0,
+          freeCycleEndTime -
+            lastClaimTime
+        )
+
+      const freeCycleSeconds =
+        Math.floor(
+          freeCycleMilliseconds /
+            1000
+        )
+
+      const nowReachedCycleEnd =
+        now >= freeCycleEndTime
+
+      console.log(
+        'FREE MINING CYCLE:',
+        {
+          sessionId:
+            session.id,
+
+          lastClaimTime,
+
+          freeCycleEndTime,
+
+          freeCycleSeconds,
+
+          now,
+
+          nowReachedCycleEnd,
+        }
       )
 
-    const lockedRatePerSecond =
-      Number(
-        lockedSession.rate_per_second ||
-          0
-      )
+      // =====================================================
+      // FREE CYCLE NOT COMPLETE
+      // =====================================================
 
-    const lockedEarned =
-      lockedRatePerSecond *
-      lockedClaimSeconds
-
-    console.log(
-      'LOCKED MINING CLAIM:',
-      {
-        sessionId:
-          lockedSession.id,
-
-        lastClaimTime:
-          lockedLastClaimTime,
-
-        nextClaimTime:
-          lockedNextClaimTime,
-
-        claimEndTime:
-          lockedClaimEndTime,
-
-        claimSeconds:
-          lockedClaimSeconds,
-
-        ratePerSecond:
-          lockedRatePerSecond,
-
-        earned:
-          lockedEarned,
+      if (!nowReachedCycleEnd) {
+        return NextResponse.json({
+          success: true,
+          session,
+          claimed: 0,
+          credited: 0,
+          principal_returned: 0,
+          reward: Number(
+            session.reward || 0
+          ),
+          total_earned: Number(
+            session.total_earned || 0
+          ),
+          completed: false,
+          paused: false,
+        })
       }
-    )
 
-    // =====================================================
-    // DETERMINE COMPLETION
-    // =====================================================
+      // =====================================================
+      // CALCULATE FREE REWARD
+      // =====================================================
 
-    const isCompleted =
-      lockedClaimEndTime >=
-      lockedEndTime
+      const ratePerSecond =
+        Number(
+          session.rate_per_second || 0
+        )
 
-    // =====================================================
-    // BALANCE
-    // =====================================================
+      const earned =
+        ratePerSecond > 0
+          ? ratePerSecond *
+            freeCycleSeconds
+          : 0
 
-    if (lockedEarned > 0) {
-      const {
-        data: balance,
-        error:
-          balanceError,
-      } =
-        await supabase
+      console.log(
+        'FREE MINING AUTOMATIC REWARD:',
+        {
+          sessionId:
+            session.id,
+
+          freeCycleSeconds,
+
+          ratePerSecond,
+
+          earned,
+        }
+      )
+
+      // =====================================================
+      // CREDIT GOLD
+      // =====================================================
+
+      if (earned > 0) {
+        const {
+          data: balance,
+          error: balanceError,
+        } = await supabase
           .from('balances')
           .select('*')
           .eq(
@@ -790,249 +794,326 @@ export async function GET() {
           )
           .maybeSingle()
 
-      if (balanceError) {
-        throw new Error(
-          balanceError.message
-        )
-      }
+        if (balanceError) {
+          throw new Error(
+            balanceError.message
+          )
+        }
 
-      if (!balance) {
-        const {
-          error:
-            balanceInsertError,
-        } =
-          await supabase
+        if (!balance) {
+          const {
+            error:
+              balanceInsertError,
+          } = await supabase
             .from('balances')
             .insert({
               user_id:
                 user.id,
 
               gold:
-                lockedEarned,
+                earned,
 
               cash:
                 0,
             })
 
-        if (
-          balanceInsertError
-        ) {
-          throw new Error(
-            balanceInsertError.message
-          )
-        }
-      } else {
-        const currentGold =
-          Number(
-            balance.gold || 0
-          )
+          if (
+            balanceInsertError
+          ) {
+            throw new Error(
+              balanceInsertError.message
+            )
+          }
+        } else {
+          const currentGold =
+            Number(
+              balance.gold || 0
+            )
 
-        const newGold =
-          currentGold +
-          lockedEarned
-
-        const {
-          error:
-            balanceUpdateError,
-        } =
-          await supabase
+          const {
+            error:
+              balanceUpdateError,
+          } = await supabase
             .from('balances')
             .update({
               gold:
-                newGold,
+                currentGold +
+                earned,
             })
             .eq(
               'user_id',
               user.id
             )
 
-        if (
-          balanceUpdateError
-        ) {
+          if (
+            balanceUpdateError
+          ) {
+            throw new Error(
+              balanceUpdateError.message
+            )
+          }
+        }
+      }
+
+      // =====================================================
+      // FINALIZE FREE CYCLE
+      // =====================================================
+
+      const previousTotalEarned =
+        Number(
+          session.total_earned || 0
+        )
+
+      const newTotalEarned =
+        previousTotalEarned +
+        earned
+
+      // -----------------------------------------------------
+      // Protect the session update using the original
+      // last_claim_at value.
+      // -----------------------------------------------------
+
+      let freeUpdateQuery =
+        supabase
+          .from('mining_sessions')
+          .update({
+            active: false,
+
+            status: 'paused',
+
+            processing_at: null,
+
+            last_claim_at:
+              new Date(
+                freeCycleEndTime
+              ).toISOString(),
+
+            reward:
+              earned,
+
+            total_earned:
+              newTotalEarned,
+          })
+          .eq(
+            'id',
+            session.id
+          )
+          .eq(
+            'user_id',
+            user.id
+          )
+          .eq(
+            'active',
+            true
+          )
+          .eq(
+            'status',
+            'active'
+          )
+
+      if (
+        session.last_claim_at ===
+        null
+      ) {
+        freeUpdateQuery =
+          freeUpdateQuery.is(
+            'last_claim_at',
+            null
+          )
+      } else {
+        freeUpdateQuery =
+          freeUpdateQuery.eq(
+            'last_claim_at',
+            session.last_claim_at
+          )
+      }
+
+      const {
+        data: updatedRows,
+        error: updateError,
+      } = await freeUpdateQuery.select()
+
+      if (updateError) {
+        throw new Error(
+          updateError.message
+        )
+      }
+
+      // -----------------------------------------------------
+      // CONCURRENT FREE REQUEST
+      //
+      // Another request already finalized this cycle.
+      //
+      // NOTE:
+      // The session protection prevents the same mining
+      // session from being finalized twice.
+      // -----------------------------------------------------
+
+      if (
+        !updatedRows ||
+        updatedRows.length === 0
+      ) {
+        const {
+          data: latestSession,
+          error:
+            latestSessionError,
+        } = await supabase
+          .from('mining_sessions')
+          .select('*')
+          .eq(
+            'id',
+            session.id
+          )
+          .eq(
+            'user_id',
+            user.id
+          )
+          .maybeSingle()
+
+        if (latestSessionError) {
           throw new Error(
-            balanceUpdateError.message
+            latestSessionError.message
+          )
+        }
+
+        if (!latestSession) {
+          throw new Error(
+            'Mining session could not be found after concurrent update.'
+          )
+        }
+
+        return NextResponse.json({
+          success: true,
+          session:
+            latestSession,
+          claimed: 0,
+          credited: 0,
+          principal_returned: 0,
+          reward: Number(
+            latestSession.reward || 0
+          ),
+          total_earned: Number(
+            latestSession.total_earned || 0
+          ),
+          completed:
+            latestSession.status ===
+            'completed',
+          paused:
+            latestSession.status ===
+            'paused',
+        })
+      }
+
+      const updatedSession =
+        updatedRows[0]
+
+      if (!updatedSession) {
+        throw new Error(
+          'Free mining session update returned no session.'
+        )
+      }
+
+      // =====================================================
+      // FREE MINING TRANSACTION
+      // =====================================================
+
+      if (earned > 0) {
+        const {
+          error:
+            transactionError,
+        } = await supabase
+          .from('transactions')
+          .insert({
+            user_id:
+              user.id,
+
+            type:
+              'mining',
+
+            amount:
+              earned,
+
+            currency:
+              'GOLD',
+
+            status:
+              'completed',
+
+            description:
+              'Free mining reward credited automatically',
+          })
+
+        if (transactionError) {
+          console.error(
+            'FREE MINING TRANSACTION ERROR:',
+            transactionError
           )
         }
       }
-    }
 
-    console.log(
-      'EARNED:',
-      lockedEarned
-    )
+      console.log(
+        'FREE MINING CYCLE COMPLETED:',
+        {
+          sessionId:
+            updatedSession.id,
 
-    console.log(
-      'SESSION ID:',
-      lockedSession.id
-    )
+          earned,
 
-    // =====================================================
-    // UPDATE SESSION
-    // =====================================================
-
-    const previousTotalEarned =
-      Number(
-        lockedSession
-          .total_earned ||
-          0
-      )
-
-    const newTotalEarned =
-      previousTotalEarned +
-      lockedEarned
-
-    const {
-      data: updatedRows,
-      error:
-        updateError,
-    } =
-      await supabase
-        .from(
-          'mining_sessions'
-        )
-        .update({
-          active:
-            !isCompleted,
-
-          status:
-            isCompleted
-              ? 'completed'
-              : 'active',
-
-          processing_at:
-            null,
-
-          last_claim_at:
-            new Date(
-              lockedClaimEndTime
-            ).toISOString(),
-
-          reward:
-            lockedEarned,
-
-          total_earned:
+          totalEarned:
             newTotalEarned,
 
-          investment_amount:
-            Number(
-              lockedSession
-                .investment_amount ||
-                0
-            ),
-        })
-        .eq(
-          'id',
-          lockedSession.id
-        )
-        .eq(
-          'user_id',
-          user.id
-        )
-        .eq(
-          'active',
-          true
-        )
-        .eq(
-          'status',
-          'processing'
-        )
-        .select()
-
-    console.log(
-      'SESSION UPDATE RESULT:',
-      updatedRows,
-      updateError
-    )
-
-    if (updateError) {
-      throw new Error(
-        updateError.message
+          status:
+            updatedSession.status,
+        }
       )
-    }
 
-    const updatedSession =
-      updatedRows?.[0] ||
-      null
+      return NextResponse.json({
+        success: true,
 
-    if (!updatedSession) {
-      throw new Error(
-        'Mining session could not be finalized.'
-      )
-    }
+        session:
+          updatedSession,
 
-    // =====================================================
-    // MINING REWARD TRANSACTION
-    // =====================================================
+        claimed:
+          earned,
 
-   if (
-  lockedEarned > 0
-) {
-  const {
-    error:
-      transactionError,
-  } =
-    await supabase
-      .from(
-        'transactions'
-      )
-      .insert({
-        user_id:
-          user.id,
+        credited:
+          earned,
 
-        type:
-          'mining',
+        principal_returned:
+          0,
 
-        amount:
-          lockedEarned,
+        reward:
+          earned,
 
-        currency:
-          'GOLD',
+        total_earned:
+          newTotalEarned,
 
-        status:
-          'completed',
+        completed:
+          false,
 
-        description:
-          'Mining reward claimed',
+        paused:
+          true,
       })
+    }
 
-  if (
-    transactionError
-  ) {
-    console.error(
-      'MINING TRANSACTION ERROR:',
-      transactionError
+    // =====================================================
+    // UNKNOWN MINING TYPE
+    // =====================================================
+
+    return NextResponse.json(
+      {
+        success: false,
+
+        error:
+          'Unable to determine mining session type.',
+      },
+      {
+        status: 400,
+      }
     )
-  }
-}
-
-    // =====================================================
-    // RESPONSE
-    // =====================================================
-
-    return NextResponse.json({
-      success: true,
-
-      session:
-        updatedSession,
-
-      claimed:
-        lockedEarned,
-
-      credited:
-        lockedEarned,
-
-      principal_returned:
-        0,
-
-      total_earned:
-        newTotalEarned,
-
-      completed:
-        isCompleted,
-    })
   } catch (err: unknown) {
     console.error(
-      'MINING SESSION ERROR',
+      'MINING SESSION ERROR:',
       err
     )
 

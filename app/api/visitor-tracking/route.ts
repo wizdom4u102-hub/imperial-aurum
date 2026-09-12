@@ -51,16 +51,22 @@ export async function POST(
 
     switch (body.action) {
       case "create-session": {
-        const sessionUuid =
-          await createVisitorSession(
-            body.input,
-          );
+  const country =
+    request.headers.get(
+      "x-vercel-ip-country",
+    );
 
-        return NextResponse.json({
-          success: true,
-          data: sessionUuid,
-        });
-      }
+  const sessionUuid =
+    await createVisitorSession({
+      ...body.input,
+      country,
+    });
+
+  return NextResponse.json({
+    success: true,
+    data: sessionUuid,
+  });
+}
 
       case "register-visit": {
         const visitResult =
@@ -117,12 +123,11 @@ export async function POST(
           { status: 400 },
         );
     }
-  } catch (error) {
+    } catch (error) {
     const message =
       error instanceof Error
         ? error.message
         : "Visitor tracking request failed";
-
     return NextResponse.json(
       {
         success: false,

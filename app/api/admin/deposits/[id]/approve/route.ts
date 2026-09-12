@@ -510,9 +510,13 @@ export async function POST(
               'Share Plan Activated',
 
             html:
-              depositApprovedEmail(
-                amount
-              ),
+             depositApprovedEmail(
+             amount,
+             authUser.user?.user_metadata?.name ||
+             authUser.user?.user_metadata?.full_name ||
+             authUser.user?.email?.split("@")[0] ||
+             "Investor"
+            ),
           })
         }
       } catch (
@@ -695,7 +699,8 @@ const miningStart =
 const miningEnd =
   new Date(
     miningStart.getTime() +
-      secondsPerDay *
+      durationDays *
+        secondsPerDay *
         1000
   )
 
@@ -1122,7 +1127,8 @@ const miningEnd =
        const newMiningEnd =
   new Date(
     newMiningStart.getTime() +
-      secondsPerDay *
+      activeDurationDays *
+        secondsPerDay *
         1000
   )
 
@@ -1584,9 +1590,13 @@ const miningEnd =
           'Mining Plan Activated',
 
         html:
-          depositApprovedEmail(
-            amount
-          ),
+  depositApprovedEmail(
+    amount,
+    authUser.user?.user_metadata?.name ||
+      authUser.user?.user_metadata?.full_name ||
+      authUser.user?.email?.split("@")[0] ||
+      "Investor"
+  ),
       })
 
     if (!emailResult.success) {
@@ -1960,9 +1970,13 @@ const miningEnd =
             'Deposit Approved',
 
           html:
-            depositApprovedEmail(
-              amount
-            ),
+  depositApprovedEmail(
+    amount,
+    authUser.user?.user_metadata?.name ||
+      authUser.user?.user_metadata?.full_name ||
+      authUser.user?.email?.split("@")[0] ||
+      "Investor"
+  ),
         })
       }
     } catch (

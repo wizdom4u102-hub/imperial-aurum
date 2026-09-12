@@ -148,6 +148,17 @@ export default function AdminVisitorPanel({
               </p>
             </div>
 
+            <div>
+  <p className="text-gray-500">
+    Country
+  </p>
+
+  <p className="mt-0.5 font-medium">
+    {session.country ??
+      "Unknown"}
+  </p>
+</div>
+
             {session.referrer_url ? (
               <div>
                 <p className="text-gray-500">

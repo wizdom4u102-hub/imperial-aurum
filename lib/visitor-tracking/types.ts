@@ -72,6 +72,7 @@ export interface VisitorSession {
   referrerUrl: string | null;
   landingPage: string | null;
   referralCode: string | null;
+  country: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -107,6 +108,7 @@ export interface CreateVisitorSessionInput {
   browser?: string | null;
   operatingSystem?: string | null;
   referralCode?: string | null;
+  country?: string | null;
 }
 
 /* -------------------------------------------------------------------------- */
