@@ -104,9 +104,12 @@ export default function Footer() {
                 💬 Live Chat Support
               </p>
 
-              <p>
+              <a
+                href="mailto:support@imperialaurum.com"
+                className="block hover:text-yellow-400 transition-colors"
+              >
                 📧 support@imperialaurum.com
-              </p>
+              </a>
 
               <p>
                 🕒 24 Hours / 7 Days
