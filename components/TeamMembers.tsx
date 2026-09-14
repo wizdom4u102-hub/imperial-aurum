@@ -162,12 +162,13 @@ export default function TeamMembers() {
                     {member.image ? (
                       <div className="relative h-32 w-32 overflow-hidden rounded-full border-4 border-yellow-400 shadow-lg">
                         <Image
-                          src={member.image}
-                          alt={member.name}
-                          fill
-                          sizes="128px"
-                          className="object-cover"
-                        />
+  src={member.image}
+  alt={member.name}
+  fill
+  sizes="128px"
+  className="object-cover"
+  unoptimized
+/>
                       </div>
                     ) : (
                       <div className="flex h-32 w-32 items-center justify-center rounded-full border-4 border-yellow-400 bg-zinc-900 text-5xl shadow-lg">

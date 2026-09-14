@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import LanguageSelector from "@/components/LanguageSelector";
+import SmartsuppChat from "@/components/smartsupp-chat";
 
 export default function LayoutExtras() {
   const pathname = usePathname();
@@ -20,6 +21,8 @@ export default function LayoutExtras() {
       <div className="fixed bottom-6 left-6 z-50">
         <LanguageSelector />
       </div>
+
+      <SmartsuppChat />
     </>
   );
 }
