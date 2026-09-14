@@ -32,7 +32,7 @@ export default async function WithdrawPage() {
                 type="number" 
                 step="0.01" 
                 min="10"
-                placeholder="Minimum $10"
+                placeholder="Minimum $5"
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-6 py-5 text-2xl"
               />
             </div>

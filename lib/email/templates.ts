@@ -458,21 +458,33 @@ export function withdrawalSubmittedEmail(
       </div>
 
       <p>
-        Your request has been forwarded to our administration team for review.
+        The requested amount has been reserved from your available
+        cash balance while your withdrawal is being reviewed.
       </p>
 
       <p>
-        Once it has been approved or rejected, you will receive another email
-        with the outcome.
+        Your request has been forwarded to our administration team
+        for review.
+      </p>
+
+      <p>
+        Once your withdrawal has been approved or rejected, you will
+        receive another email with the outcome.
       </p>
 
       <p>
         Thank you for choosing
         <strong>Imperial Aurum Mining</strong>.
       </p>
+
+      <p>
+        Best regards,<br>
+        <strong>Imperial Aurum Mining Team</strong>
+      </p>
     `
   );
 }
+
 
 /* ================================
    ✅ WITHDRAWAL APPROVED
@@ -489,7 +501,8 @@ export function withdrawalApprovedEmail(
 
       <p>
         Your withdrawal request has been
-        <strong style="color:#22c55e;">approved</strong>.
+        <strong style="color:#22c55e;">approved</strong>
+        successfully.
       </p>
 
       <div
@@ -513,18 +526,29 @@ export function withdrawalApprovedEmail(
       </div>
 
       <p>
-        Your payment is now being processed and
-        will be sent to your selected wallet
-        according to our withdrawal schedule.
+        The withdrawal amount has already been deducted from your
+        available cash balance when the request was submitted.
+        No additional deduction was made when the withdrawal was approved.
+      </p>
+
+      <p>
+        Your payment is now being processed and will be sent to your
+        selected wallet according to our withdrawal process.
       </p>
 
       <p>
         Thank you for choosing
         <strong>Imperial Aurum Mining</strong>.
       </p>
+
+      <p>
+        Best regards,<br>
+        <strong>Imperial Aurum Mining Team</strong>
+      </p>
     `
   );
 }
+
 
 /* ================================
    ❌ WITHDRAWAL REJECTED
@@ -540,8 +564,8 @@ export function withdrawalRejectedEmail(
       <p>Hello <strong>${username}</strong>,</p>
 
       <p>
-        Unfortunately, your withdrawal request
-        could not be approved.
+        Unfortunately, your withdrawal request could not be approved
+        by our administration team.
       </p>
 
       <div
@@ -554,25 +578,67 @@ export function withdrawalRejectedEmail(
         "
       >
         <p style="margin:0;">
-          <strong>Amount:</strong>
+          <strong>Withdrawal Amount:</strong>
           $${Number(amount).toFixed(2)}
         </p>
 
         <p style="margin:10px 0 0;">
           <strong>Status:</strong>
-          Rejected
+          <span style="color:#ef4444;font-weight:bold;">
+            Rejected
+          </span>
+        </p>
+      </div>
+
+      <div
+        style="
+          margin:30px 0;
+          padding:20px;
+          background:#27272a;
+          border-left:4px solid #22c55e;
+          border-radius:8px;
+        "
+      >
+        <p
+          style="
+            margin:0;
+            color:#22c55e;
+            font-size:17px;
+            font-weight:bold;
+          "
+        >
+          Amount Returned to Your Balance
+        </p>
+
+        <p style="margin:12px 0 0;color:#ffffff;">
+          The full withdrawal amount of
+          <strong>$${Number(amount).toFixed(2)}</strong>
+          has been returned to your account cash balance.
         </p>
       </div>
 
       <p>
-        If you believe this decision was made in
-        error or you need more information,
-        please contact our support team.
+        No funds have been lost as a result of this rejected
+        withdrawal request.
       </p>
 
       <p>
-        Thank you for using
+        You can check your updated cash balance from your dashboard.
+      </p>
+
+      <p>
+        If you believe this withdrawal was rejected in error or you
+        need additional information, please contact our support team.
+      </p>
+
+      <p>
+        Thank you for choosing
         <strong>Imperial Aurum Mining</strong>.
+      </p>
+
+      <p>
+        Best regards,<br>
+        <strong>Imperial Aurum Mining Team</strong>
       </p>
     `
   );
@@ -994,6 +1060,972 @@ export function dailyMiningReminderEmail({
       <p>
         If you are using a paid Mining Plan, your mining continues according
         to your active plan even if you do not visit the dashboard.
+      </p>
+
+      <p>
+        Thank you for choosing
+        <strong>Imperial Aurum Mining.</strong>
+      </p>
+
+      <p>
+        Best regards,<br>
+        <strong>Imperial Aurum Mining Team</strong>
+      </p>
+    `
+  );
+}
+
+/* ================================
+   👤 ADMIN — NEW SIGNUP
+================================ */
+
+export function adminNewSignupEmail({
+  name,
+  email,
+}: {
+  name: string;
+  email: string;
+}) {
+  return emailLayout(
+    "New User Registration",
+    `
+      <p>Hello Admin,</p>
+
+      <p>
+        A new user has successfully registered on
+        <strong>Imperial Aurum Mining</strong>.
+      </p>
+
+      <table
+        width="100%"
+        cellpadding="10"
+        cellspacing="0"
+        style="
+          background:#27272a;
+          border-radius:10px;
+          margin:25px 0;
+          color:#ffffff;
+        "
+      >
+        <tr>
+          <td style="color:#a1a1aa;">
+            Name
+          </td>
+
+          <td align="right" style="font-weight:bold;">
+            ${name}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Email
+          </td>
+
+          <td align="right">
+            ${email}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Status
+          </td>
+
+          <td
+            align="right"
+            style="color:#22c55e;font-weight:bold;"
+          >
+            Registered
+          </td>
+        </tr>
+      </table>
+
+      <p>
+        You can log in to the administration dashboard to view
+        the user's account and activity.
+      </p>
+    `
+  );
+}
+
+
+/* ================================
+   💰 ADMIN — NEW DEPOSIT
+================================ */
+
+export function adminNewDepositEmail({
+  name,
+  email,
+  amount,
+  method,
+}: {
+  name: string;
+  email: string;
+  amount: number;
+  method?: string;
+}) {
+  return emailLayout(
+    "New Deposit Request",
+    `
+      <p>Hello Admin,</p>
+
+      <p>
+        A new deposit request has been submitted by a user
+        and is awaiting review.
+      </p>
+
+      <table
+        width="100%"
+        cellpadding="10"
+        cellspacing="0"
+        style="
+          background:#27272a;
+          border-radius:10px;
+          margin:25px 0;
+          color:#ffffff;
+        "
+      >
+        <tr>
+          <td style="color:#a1a1aa;">
+            User
+          </td>
+
+          <td align="right" style="font-weight:bold;">
+            ${name}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Email
+          </td>
+
+          <td align="right">
+            ${email}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Amount
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#22c55e;
+              font-weight:bold;
+              font-size:18px;
+            "
+          >
+            $${Number(amount).toFixed(2)}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Payment Method
+          </td>
+
+          <td align="right">
+            ${method || "N/A"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Status
+          </td>
+
+          <td
+            align="right"
+            style="color:#facc15;font-weight:bold;"
+          >
+            Pending Review
+          </td>
+        </tr>
+      </table>
+
+      <p>
+        Please log in to the administration dashboard to review
+        and process this deposit.
+      </p>
+    `
+  );
+}
+
+
+/* ================================
+   💸 ADMIN — NEW WITHDRAWAL
+================================ */
+
+export function adminNewWithdrawalEmail({
+  name,
+  email,
+  amount,
+}: {
+  name: string;
+  email: string;
+  amount: number;
+}) {
+  return emailLayout(
+    "New Withdrawal Request",
+    `
+      <p>Hello Admin,</p>
+
+      <p>
+        A new withdrawal request has been submitted and is
+        awaiting approval.
+      </p>
+
+      <table
+        width="100%"
+        cellpadding="10"
+        cellspacing="0"
+        style="
+          background:#27272a;
+          border-radius:10px;
+          margin:25px 0;
+          color:#ffffff;
+        "
+      >
+        <tr>
+          <td style="color:#a1a1aa;">
+            User
+          </td>
+
+          <td align="right" style="font-weight:bold;">
+            ${name}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Email
+          </td>
+
+          <td align="right">
+            ${email}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Withdrawal Amount
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#facc15;
+              font-weight:bold;
+              font-size:18px;
+            "
+          >
+            $${Number(amount).toFixed(2)}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Status
+          </td>
+
+          <td
+            align="right"
+            style="color:#facc15;font-weight:bold;"
+          >
+            Pending Approval
+          </td>
+        </tr>
+      </table>
+
+      <p>
+        Please log in to the administration dashboard to review
+        and process this withdrawal request.
+      </p>
+    `
+  );
+}
+
+/* ================================
+   🤖 ADMIN — NEW TRADING BOT DEPOSIT
+================================ */
+
+export function adminNewTradingBotDepositEmail({
+  name,
+  email,
+  amount,
+  method,
+  botName,
+  planName,
+  txid,
+}: {
+  name: string;
+  email: string;
+  amount: number;
+  method?: string;
+  botName?: string;
+  planName?: string;
+  txid?: string;
+}) {
+  return emailLayout(
+    "New Trading Bot Deposit",
+    `
+      <p>Hello Admin,</p>
+
+      <p>
+        A new <strong>Trading Bot deposit</strong> has been submitted
+        and is awaiting review.
+      </p>
+
+      <table
+        width="100%"
+        cellpadding="10"
+        cellspacing="0"
+        style="
+          background:#27272a;
+          border-radius:10px;
+          margin:25px 0;
+          color:#ffffff;
+        "
+      >
+        <tr>
+          <td style="color:#a1a1aa;">
+            User
+          </td>
+
+          <td align="right" style="font-weight:bold;">
+            ${name}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Email
+          </td>
+
+          <td align="right">
+            ${email}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Trading Bot
+          </td>
+
+          <td align="right" style="font-weight:bold;">
+            ${botName || "New Trading Bot"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Investment Amount
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#22c55e;
+              font-weight:bold;
+              font-size:18px;
+            "
+          >
+            $${Number(amount).toFixed(2)}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Payment Method
+          </td>
+
+          <td align="right">
+            ${method || "N/A"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Type
+          </td>
+
+          <td align="right">
+            New Trading Bot
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Status
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#facc15;
+              font-weight:bold;
+            "
+          >
+            Pending Review
+          </td>
+        </tr>
+      </table>
+
+      <p>
+        Please log in to the administration dashboard to review
+        and process this Trading Bot deposit.
+      </p>
+    `
+  );
+}
+
+/* ================================
+   🤖 ADMIN — NEW TRADING BOT TOP-UP
+================================ */
+
+export function adminNewTradingBotTopUpEmail({
+  name,
+  email,
+  amount,
+  method,
+  botName,
+  planName,
+  txid,
+}: {
+  name: string;
+  email: string;
+  amount: number;
+  method?: string;
+  botName?: string;
+  planName?: string;
+  txid?: string;
+}) {
+  return emailLayout(
+    "New Trading Bot Top-Up",
+    `
+      <p>Hello Admin,</p>
+
+      <p>
+        A user has submitted a new
+        <strong>Trading Bot top-up</strong>
+        and it is awaiting review.
+      </p>
+
+      <table
+        width="100%"
+        cellpadding="10"
+        cellspacing="0"
+        style="
+          background:#27272a;
+          border-radius:10px;
+          margin:25px 0;
+          color:#ffffff;
+        "
+      >
+        <tr>
+          <td style="color:#a1a1aa;">
+            User
+          </td>
+
+          <td align="right" style="font-weight:bold;">
+            ${name}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Email
+          </td>
+
+          <td align="right">
+            ${email}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Trading Bot
+          </td>
+
+          <td align="right" style="font-weight:bold;">
+            ${botName || "Trading Bot"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Plan
+          </td>
+
+          <td align="right">
+            ${planName || "N/A"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Top-Up Amount
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#22c55e;
+              font-weight:bold;
+              font-size:18px;
+            "
+          >
+            $${Number(amount).toFixed(2)}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Payment Method
+          </td>
+
+          <td align="right">
+            ${method || "N/A"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Transaction Hash
+          </td>
+
+          <td
+            align="right"
+            style="
+              font-size:13px;
+              word-break:break-all;
+            "
+          >
+            ${txid || "N/A"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Type
+          </td>
+
+          <td align="right">
+            Trading Bot Top-Up
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Status
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#facc15;
+              font-weight:bold;
+            "
+          >
+            Pending Review
+          </td>
+        </tr>
+      </table>
+
+      <p>
+        Please log in to the administration dashboard to review
+        and process this Trading Bot top-up.
+      </p>
+    `
+  );
+}
+
+/* ================================
+   🤖 USER — TRADING BOT DEPOSIT SUBMITTED
+================================ */
+
+export function tradingBotDepositSubmittedEmail({
+  name,
+  amount,
+  botName,
+  planName,
+  txid,
+}: {
+  name: string;
+  amount: number;
+  botName?: string;
+  planName?: string;
+  txid?: string;
+}) {
+  return emailLayout(
+    "Trading Bot Deposit Received",
+    `
+      <p>Hello <strong>${name}</strong>,</p>
+
+      <p>
+        We have successfully received your
+        <strong>Trading Bot deposit request</strong>.
+      </p>
+
+      <p>
+        Your payment has been submitted and is currently
+        <strong style="color:#facc15;">pending review</strong>
+        by our administration team.
+      </p>
+
+      <table
+        width="100%"
+        cellpadding="10"
+        cellspacing="0"
+        style="
+          background:#27272a;
+          border-radius:10px;
+          margin:25px 0;
+          color:#ffffff;
+        "
+      >
+        <tr>
+          <td style="color:#a1a1aa;">
+            Trading Bot
+          </td>
+
+          <td align="right" style="font-weight:bold;">
+            ${botName || "New Trading Bot"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Plan
+          </td>
+
+          <td align="right">
+            ${planName || "N/A"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Deposit Amount
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#22c55e;
+              font-weight:bold;
+              font-size:18px;
+            "
+          >
+            $${Number(amount).toFixed(2)}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Transaction Hash
+          </td>
+
+          <td
+            align="right"
+            style="
+              font-size:13px;
+              word-break:break-all;
+            "
+          >
+            ${txid || "N/A"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Status
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#facc15;
+              font-weight:bold;
+            "
+          >
+            Pending Review
+          </td>
+        </tr>
+      </table>
+
+      <p>
+        Our administration team will review your payment.
+        You will receive another email once your Trading Bot
+        deposit has been approved or rejected.
+      </p>
+
+      <p>
+        Thank you for choosing
+        <strong>Imperial Aurum Mining.</strong>
+      </p>
+
+      <p>
+        Best regards,<br>
+        <strong>Imperial Aurum Mining Team</strong>
+      </p>
+    `
+  );
+}
+
+
+/* ================================
+   🤖 USER — TRADING BOT TOP-UP SUBMITTED
+================================ */
+
+export function tradingBotTopUpSubmittedEmail({
+  name,
+  amount,
+  botName,
+  planName,
+  txid,
+}: {
+  name: string;
+  amount: number;
+  botName?: string;
+  planName?: string;
+  txid?: string;
+}) {
+  return emailLayout(
+    "Trading Bot Top-Up Received",
+    `
+      <p>Hello <strong>${name}</strong>,</p>
+
+      <p>
+        We have successfully received your
+        <strong>Trading Bot top-up request</strong>.
+      </p>
+
+      <p>
+        Your top-up payment has been submitted and is currently
+        <strong style="color:#facc15;">pending review</strong>
+        by our administration team.
+      </p>
+
+      <table
+        width="100%"
+        cellpadding="10"
+        cellspacing="0"
+        style="
+          background:#27272a;
+          border-radius:10px;
+          margin:25px 0;
+          color:#ffffff;
+        "
+      >
+        <tr>
+          <td style="color:#a1a1aa;">
+            Trading Bot
+          </td>
+
+          <td align="right" style="font-weight:bold;">
+            ${botName || "Trading Bot"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Plan
+          </td>
+
+          <td align="right">
+            ${planName || "N/A"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Top-Up Amount
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#22c55e;
+              font-weight:bold;
+              font-size:18px;
+            "
+          >
+            $${Number(amount).toFixed(2)}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Transaction Hash
+          </td>
+
+          <td
+            align="right"
+            style="
+              font-size:13px;
+              word-break:break-all;
+            "
+          >
+            ${txid || "N/A"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Status
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#facc15;
+              font-weight:bold;
+            "
+          >
+            Pending Review
+          </td>
+        </tr>
+      </table>
+
+      <p>
+        Our administration team will review your payment.
+        You will receive another email once your Trading Bot
+        top-up has been approved or rejected.
+      </p>
+
+      <p>
+        Thank you for choosing
+        <strong>Imperial Aurum Mining.</strong>
+      </p>
+
+      <p>
+        Best regards,<br>
+        <strong>Imperial Aurum Mining Team</strong>
+      </p>
+    `
+  );
+}
+
+
+/* ================================
+   🤖 USER — TRADING BOT DEPOSIT/TOP-UP APPROVED
+================================ */
+
+export function tradingBotDepositApprovedEmail({
+  name,
+  amount,
+  botName,
+  planName,
+  type,
+}: {
+  name: string;
+  amount: number;
+  botName?: string;
+  planName?: string;
+  type: "deposit" | "top_up";
+}) {
+  const isTopUp = type === "top_up";
+
+  return emailLayout(
+    isTopUp
+      ? "Trading Bot Top-Up Approved"
+      : "Trading Bot Deposit Approved",
+    `
+      <p>Hello <strong>${name}</strong>,</p>
+
+      <p>
+        Congratulations!
+      </p>
+
+      <p>
+        Your
+        <strong>
+          ${isTopUp ? "Trading Bot top-up" : "Trading Bot deposit"}
+        </strong>
+        has been successfully approved.
+      </p>
+
+      <table
+        width="100%"
+        cellpadding="10"
+        cellspacing="0"
+        style="
+          background:#27272a;
+          border-radius:10px;
+          margin:25px 0;
+          color:#ffffff;
+        "
+      >
+        <tr>
+          <td style="color:#a1a1aa;">
+            Trading Bot
+          </td>
+
+          <td align="right" style="font-weight:bold;">
+            ${botName || "Trading Bot"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Plan
+          </td>
+
+          <td align="right">
+            ${planName || "N/A"}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            ${isTopUp ? "Top-Up Amount" : "Deposit Amount"}
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#22c55e;
+              font-weight:bold;
+              font-size:18px;
+            "
+          >
+            $${Number(amount).toFixed(2)}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Status
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#22c55e;
+              font-weight:bold;
+            "
+          >
+            Approved
+          </td>
+        </tr>
+      </table>
+
+      <p>
+        ${
+          isTopUp
+            ? "Your Trading Bot balance has been updated with the approved top-up amount."
+            : "Your Trading Bot deposit has been approved and your Trading Bot is now active according to your selected plan."
+        }
+      </p>
+
+      <p>
+        You can log in to your dashboard to view your
+        Trading Bot balance and activity.
       </p>
 
       <p>

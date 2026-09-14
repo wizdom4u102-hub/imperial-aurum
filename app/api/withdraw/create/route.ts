@@ -1,80 +1,167 @@
 import { NextResponse } from "next/server";
+
 import { createClient } from "@/lib/supabase/server";
+
 import { sendEmail } from "@/lib/email/sendEmail";
-import { withdrawalSubmittedEmail } from "@/lib/email/templates";
 
-export async function POST(req: Request) {
+import {
+  withdrawalSubmittedEmail,
+  adminNewWithdrawalEmail,
+} from "@/lib/email/templates";
+
+export async function POST(
+  req: Request
+) {
   try {
-    const supabase = await createClient();
+    console.log(
+      "=========== WITHDRAWAL REQUEST =========="
+    );
 
-    // ================= AUTH =================
+    const supabase =
+      await createClient();
+
+    // ============================================================
+    // AUTHENTICATION
+    // ============================================================
 
     const {
-      data: { user },
+      data: {
+        user,
+      },
       error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    // ================= GET USERNAME =================
-
-const {
-  data: profile,
-  error: profileError,
-} = await supabase
-  .from("profiles")
-  .select("username")
-  .eq("id", user.id)
-  .single();
-
-if (profileError || !profile) {
-  console.error(
-    "PROFILE FETCH ERROR:",
-    profileError
-  );
-
-  return NextResponse.json(
-    {
-      error: "User profile not found",
-    },
-    {
-      status: 404,
-    }
-  );
-}
-
-const username =
-  profile.username || "User";
-
-    // ================= BODY =================
-
-    const body = await req.json();
-
-    const {
-      amount,
-      method_id,
-    } = body;
+    } =
+      await supabase.auth.getUser();
 
     if (
-      !amount ||
-      Number(amount) <= 0
+      userError ||
+      !user
     ) {
+      console.error(
+        "❌ WITHDRAWAL AUTH ERROR:",
+        userError
+      );
+
       return NextResponse.json(
         {
-          error: "Invalid amount",
+          error:
+            "Unauthorized",
         },
         {
-          status: 400,
+          status: 401,
         }
       );
     }
 
-    if (!method_id) {
+    console.log(
+      "Withdrawal user:",
+      user.id
+    );
+
+    console.log(
+      "Withdrawal user email:",
+      user.email
+    );
+
+    // ============================================================
+    // GET USER PROFILE
+    // ============================================================
+
+    const {
+      data: profile,
+      error: profileError,
+    } =
+      await supabase
+        .from("profiles")
+        .select("username")
+        .eq(
+          "id",
+          user.id
+        )
+        .single();
+
+    if (
+      profileError ||
+      !profile
+    ) {
+      console.error(
+        "❌ PROFILE FETCH ERROR:",
+        profileError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "User profile not found",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    const username =
+      profile.username ||
+      "User";
+
+    // ============================================================
+    // REQUEST BODY
+    // ============================================================
+
+    const body =
+      await req.json();
+
+    const amount =
+      Number(body.amount);
+
+    const methodId =
+      body.method_id;
+
+    console.log(
+      "Withdrawal amount:",
+      amount
+    );
+
+    console.log(
+      "Withdrawal method:",
+      methodId
+    );
+
+    // ============================================================
+    // VALIDATE AMOUNT
+    // ============================================================
+
+    if (
+  !Number.isFinite(amount) ||
+  amount < 10
+) {
+  console.error(
+    "❌ INVALID WITHDRAWAL AMOUNT:",
+    body.amount
+  );
+
+  return NextResponse.json(
+    {
+      error:
+        "Minimum withdrawal amount is $5",
+    },
+    {
+      status: 400,
+    }
+  );
+}
+
+    // ============================================================
+    // VALIDATE WITHDRAWAL METHOD
+    // ============================================================
+
+    if (
+      !methodId ||
+      typeof methodId !== "string"
+    ) {
+      console.error(
+        "❌ WITHDRAWAL METHOD NOT PROVIDED"
+      );
+
       return NextResponse.json(
         {
           error:
@@ -86,23 +173,72 @@ const username =
       );
     }
 
-    // ================= CHECK BALANCE =================
+    // ============================================================
+    // GET USER BALANCE
+    // ============================================================
 
     const {
       data: balance,
-    } = await supabase
-      .from("balances")
-      .select("cash")
-      .eq("user_id", user.id)
-      .single();
+      error: balanceError,
+    } =
+      await supabase
+        .from("balances")
+        .select(
+          "cash"
+        )
+        .eq(
+          "user_id",
+          user.id
+        )
+        .single();
+
+    if (
+      balanceError ||
+      !balance
+    ) {
+      console.error(
+        "❌ BALANCE FETCH ERROR:",
+        balanceError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Balance not found",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
 
     const currentBalance =
-      Number(balance?.cash || 0);
+      Number(
+        balance.cash || 0
+      );
+
+    console.log(
+      "Current cash balance:",
+      currentBalance
+    );
+
+    // ============================================================
+    // CHECK SUFFICIENT BALANCE
+    // ============================================================
 
     if (
       currentBalance <
-      Number(amount)
+      amount
     ) {
+      console.error(
+        "❌ INSUFFICIENT BALANCE",
+        {
+          currentBalance,
+          withdrawalAmount:
+            amount,
+        }
+      );
+
       return NextResponse.json(
         {
           error:
@@ -114,33 +250,56 @@ const username =
       );
     }
 
-    // ================= CREATE WITHDRAWAL =================
+    // ============================================================
+    // CALCULATE NEW BALANCE
+    // ============================================================
+
+    const newBalance =
+      currentBalance -
+      amount;
+
+    const now =
+      new Date().toISOString();
+
+    console.log(
+      "New cash balance:",
+      newBalance
+    );
+
+    // ============================================================
+    // DEDUCT BALANCE IMMEDIATELY
+    // ============================================================
 
     const {
-      data: withdrawal,
-      error,
-    } = await supabase
-      .from("withdrawals")
-      .insert({
-        user_id: user.id,
-        amount: Number(amount),
-        method_id,
-        status: "pending",
-        created_at:
-          new Date().toISOString(),
-      })
-      .select()
-      .single();
+      error:
+        balanceUpdateError,
+    } =
+      await supabase
+        .from("balances")
+        .update({
+          cash:
+            newBalance,
 
-    if (error) {
+          updated_at:
+            now,
+        })
+        .eq(
+          "user_id",
+          user.id
+        );
+
+    if (
+      balanceUpdateError
+    ) {
       console.error(
-        "WITHDRAW ERROR:",
-        error
+        "❌ WITHDRAWAL BALANCE DEDUCTION ERROR:",
+        balanceUpdateError
       );
 
       return NextResponse.json(
         {
-          error: error.message,
+          error:
+            "Unable to deduct withdrawal amount from balance",
         },
         {
           status: 500,
@@ -148,102 +307,410 @@ const username =
       );
     }
 
-    // ================= TRANSACTION HISTORY =================
+    console.log(
+      "✅ BALANCE DEDUCTED:",
+      amount
+    );
+
+    // ============================================================
+    // CREATE WITHDRAWAL
+    // ============================================================
 
     const {
-      error: txError,
-    } = await supabase
-      .from("transactions")
-      .insert({
+      data: withdrawal,
+      error:
+        withdrawalError,
+    } =
+      await supabase
+        .from("withdrawals")
+        .insert({
+          user_id:
+            user.id,
 
-        user_id: user.id,
+          amount:
+            amount,
 
-        type:
-          "withdrawal",
+          method_id:
+            methodId,
 
-        amount:
-          Number(amount),
+          status:
+            "pending",
 
-        status:
-          "pending",
+          created_at:
+            now,
+        })
+        .select()
+        .single();
 
-        description:
-          `Withdrawal request of $${Number(amount).toFixed(2)} submitted`,
-
-        created_at:
-          new Date().toISOString(),
-
-      });
-
-    if (txError) {
+    if (
+      withdrawalError ||
+      !withdrawal
+    ) {
       console.error(
-        "TRANSACTION ERROR:",
-        txError
+        "❌ WITHDRAWAL INSERT ERROR:",
+        withdrawalError
       );
-    }
 
-    // ================= SEND EMAIL =================
+      // ==========================================================
+      // ROLLBACK BALANCE IF WITHDRAWAL CREATION FAILS
+      // ==========================================================
 
-    try {
+      const {
+        error:
+          rollbackError,
+      } =
+        await supabase
+          .from("balances")
+          .update({
+            cash:
+              currentBalance,
 
-      if (user.email) {
+            updated_at:
+              new Date().toISOString(),
+          })
+          .eq(
+            "user_id",
+            user.id
+          );
 
-        await sendEmail({
-
-          to: user.email,
-
-          subject:
-            "Withdrawal Request Received",
-
-          html:
-            withdrawalSubmittedEmail(
-              Number(amount),
-               username
-            ),
-
-        });
-
+      if (
+        rollbackError
+      ) {
+        console.error(
+          "❌ CRITICAL BALANCE ROLLBACK ERROR:",
+          rollbackError
+        );
+      } else {
+        console.log(
+          "✅ BALANCE ROLLED BACK:",
+          amount
+        );
       }
 
-    } catch (emailError) {
-
-      console.error(
-        "WITHDRAWAL EMAIL ERROR:",
-        emailError
+      return NextResponse.json(
+        {
+          error:
+            withdrawalError?.message ||
+            "Unable to create withdrawal request",
+        },
+        {
+          status: 500,
+        }
       );
-
     }
 
-    // ================= SUCCESS =================
+    console.log(
+      "✅ WITHDRAWAL CREATED:",
+      withdrawal.id
+    );
 
-    return NextResponse.json({
+    // ============================================================
+    // CREATE PENDING TRANSACTION
+    //
+    // reference_id = withdrawal.id
+    // This lets approval/rejection update the exact transaction.
+    // ============================================================
 
-      success: true,
+    const {
+      data: transaction,
+      error:
+        transactionError,
+    } =
+      await supabase
+        .from("transactions")
+        .insert({
+          user_id:
+            user.id,
 
-      message:
-        "Withdrawal request submitted",
+          type:
+            "withdrawal",
 
-      withdrawal,
+          amount:
+            amount,
 
+          asset_type:
+            "cash",
+
+          currency:
+            "USD",
+
+          status:
+            "pending",
+
+          description:
+            `Withdrawal request of $${amount.toFixed(
+              2
+            )} submitted`,
+
+          reference_id:
+            withdrawal.id,
+
+          created_at:
+            now,
+        })
+        .select()
+        .single();
+
+    if (
+      transactionError ||
+      !transaction
+    ) {
+      console.error(
+        "❌ WITHDRAWAL TRANSACTION INSERT ERROR:",
+        transactionError
+      );
+
+      // ==========================================================
+      // REMOVE WITHDRAWAL IF TRANSACTION CREATION FAILS
+      // ==========================================================
+
+      const {
+        error:
+          withdrawalRollbackError,
+      } =
+        await supabase
+          .from("withdrawals")
+          .delete()
+          .eq(
+            "id",
+            withdrawal.id
+          );
+
+      if (
+        withdrawalRollbackError
+      ) {
+        console.error(
+          "❌ WITHDRAWAL ROLLBACK ERROR:",
+          withdrawalRollbackError
+        );
+      }
+
+      // ==========================================================
+      // RESTORE BALANCE
+      // ==========================================================
+
+      const {
+        error:
+          balanceRollbackError,
+      } =
+        await supabase
+          .from("balances")
+          .update({
+            cash:
+              currentBalance,
+
+            updated_at:
+              new Date().toISOString(),
+          })
+          .eq(
+            "user_id",
+            user.id
+          );
+
+      if (
+        balanceRollbackError
+      ) {
+        console.error(
+          "❌ CRITICAL BALANCE ROLLBACK ERROR:",
+          balanceRollbackError
+        );
+      } else {
+        console.log(
+          "✅ BALANCE RESTORED AFTER TRANSACTION FAILURE:",
+          amount
+        );
+      }
+
+      return NextResponse.json(
+        {
+          error:
+            transactionError?.message ||
+            "Unable to create withdrawal transaction",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    console.log(
+      "✅ PENDING WITHDRAWAL TRANSACTION CREATED:",
+      transaction.id
+    );
+
+    // ============================================================
+// SEND ADMIN EMAIL
+// ============================================================
+
+try {
+  const adminEmail = process.env.ADMIN_EMAIL;
+
+  console.log(
+    "=== WITHDRAWAL ADMIN EMAIL ==="
+  );
+
+  console.log(
+    "Admin email configured:",
+    Boolean(adminEmail)
+  );
+
+  console.log(
+    "Admin email recipient:",
+    adminEmail
+  );
+
+  if (adminEmail) {
+    const emailResult = await sendEmail({
+      to: adminEmail,
+
+      subject:
+        "New Withdrawal Request",
+
+      html: adminNewWithdrawalEmail({
+        name: username,
+        email: user.email ?? "N/A",
+        amount,
+      }),
     });
 
-  } catch (err: any) {
-
+    if (!emailResult.success) {
+      console.error(
+        "❌ WITHDRAWAL ADMIN EMAIL FAILED:",
+        emailResult.error
+      );
+    } else {
+      console.log(
+        "✅ WITHDRAWAL ADMIN EMAIL SENT:",
+        adminEmail
+      );
+    }
+  } else {
     console.error(
-      "WITHDRAW API ERROR:",
-      err
+      "❌ WITHDRAWAL ADMIN EMAIL SKIPPED: ADMIN_EMAIL IS NOT CONFIGURED"
+    );
+  }
+} catch (emailError) {
+  console.error(
+    "❌ WITHDRAWAL ADMIN EMAIL ERROR:",
+    emailError
+  );
+}
+
+    // ============================================================
+    // SEND USER EMAIL
+    // ============================================================
+
+    try {
+      console.log(
+        "=== WITHDRAWAL USER EMAIL ==="
+      );
+
+      console.log(
+        "User email recipient:",
+        user.email
+      );
+
+      if (
+        user.email
+      ) {
+        const emailResult =
+          await sendEmail({
+            to:
+              user.email,
+
+            subject:
+              "Withdrawal Request Received",
+
+            html:
+              withdrawalSubmittedEmail(
+                amount,
+                username
+              ),
+          });
+
+        if (
+          !emailResult.success
+        ) {
+          console.error(
+            "❌ WITHDRAWAL USER EMAIL FAILED:",
+            emailResult.error
+          );
+        } else {
+          console.log(
+            "✅ WITHDRAWAL USER EMAIL SENT:",
+            user.email
+          );
+        }
+      } else {
+        console.error(
+          "❌ WITHDRAWAL USER EMAIL SKIPPED: USER EMAIL NOT FOUND"
+        );
+      }
+    } catch (
+      emailError
+    ) {
+      console.error(
+        "❌ WITHDRAWAL USER EMAIL ERROR:",
+        emailError
+      );
+    }
+
+    // ============================================================
+    // SUCCESS
+    // ============================================================
+
+    console.log(
+      "✅ WITHDRAWAL REQUEST COMPLETED:",
+      {
+        withdrawalId:
+          withdrawal.id,
+
+        transactionId:
+          transaction.id,
+
+        amount,
+
+        balanceBefore:
+          currentBalance,
+
+        balanceAfter:
+          newBalance,
+      }
+    );
+
+    return NextResponse.json(
+      {
+        success:
+          true,
+
+        message:
+          "Withdrawal request submitted successfully",
+
+        withdrawal,
+      },
+      {
+        status: 200,
+      }
+    );
+
+  } catch (
+    error
+  ) {
+    console.error(
+      "❌ WITHDRAW API ERROR:",
+      error
     );
 
     return NextResponse.json(
       {
         error:
-          err.message ||
-          "Server error",
+          error instanceof Error
+            ? error.message
+            : "Server error",
       },
       {
         status: 500,
       }
     );
-
   }
 }

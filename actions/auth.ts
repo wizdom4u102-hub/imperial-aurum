@@ -8,10 +8,11 @@ import {
   passwordChangedEmail,
   passwordResetSuccessEmail,
   referralSignupBonusEmail,
+  adminNewSignupEmail,
 } from "@/lib/email/templates";
 
 /* ================================
-   ✅ SIGNUP (with gold_balance + referral)
+   SIGNUP (with gold_balance + referral)
 ================================ */
 export async function signupAction(formData: FormData) {
   const supabase = await createActionClient();
@@ -24,8 +25,7 @@ export async function signupAction(formData: FormData) {
     .trim()
     .toLowerCase();
 
-  const password = String(formData.get("password") || "")
-    .trim();
+  const password = String(formData.get("password") || "").trim();
 
   const referralUsername = String(
     formData.get("referral_code") || ""
@@ -178,42 +178,67 @@ export async function signupAction(formData: FormData) {
   });
 
   // ==============================
+  // SEND ADMIN NEW SIGNUP EMAIL
+  // ==============================
+
+  try {
+    await sendEmail({
+      to: "support@imperialaurummining.com",
+      subject: `New User Registration - ${username}`,
+      html: adminNewSignupEmail({
+        name: username,
+        email,
+      }),
+    });
+  } catch (emailError) {
+    console.error(
+      "ADMIN SIGNUP EMAIL ERROR:",
+      emailError
+    );
+
+    // Admin email failure does NOT cancel signup.
+  }
+
+  // ==============================
   // CREDIT REFERRER + SEND EMAIL
   // ==============================
 
   if (referrerId) {
-  // Give referrer 1000 Gold
-  const { error: rewardError } = await supabase.rpc(
-    "update_balance_atomic",
-    {
-      p_user_id: referrerId,
-      p_action: "gold",
-      p_amount: 1000,
+    // Give referrer 1000 Gold
+    const { error: rewardError } =
+      await supabase.rpc(
+        "update_balance_atomic",
+        {
+          p_user_id: referrerId,
+          p_action: "gold",
+          p_amount: 1000,
+        }
+      );
+
+    if (rewardError) {
+      console.error(
+        "Referrer reward error:",
+        rewardError
+      );
+    } else {
+      const { error: transactionError } =
+        await supabase.rpc(
+          "create_referral_bonus_transaction",
+          {
+            p_referrer_id: referrerId,
+            p_amount: 1000,
+            p_new_user_id: userId,
+          }
+        );
+
+      if (transactionError) {
+        console.error(
+          "Referral transaction error:",
+          transactionError
+        );
+      }
     }
-  );
 
-  if (rewardError) {
-    console.error(
-      "Referrer reward error:",
-      rewardError
-    );
-  } else {
-    const { error: transactionError } = await supabase.rpc(
-  "create_referral_bonus_transaction",
-  {
-    p_referrer_id: referrerId,
-    p_amount: 1000,
-    p_new_user_id: userId,
-  }
-);
-
-if (transactionError) {
-  console.error(
-    "Referral transaction error:",
-    transactionError
-  );
-}
-    
     // Get referrer's email and username
     const {
       data: referrerProfile,
@@ -231,7 +256,8 @@ if (transactionError) {
           html: referralSignupBonusEmail({
             name:
               referrerProfile.username ||
-              "Investor",
+              referrerProfile.email ||
+              "User",
             newUserName: username,
           }),
         });
@@ -243,7 +269,6 @@ if (transactionError) {
       }
     }
   }
-}
 
   return redirect(
     "/dashboard?message=Check your email to confirm your account"
@@ -251,7 +276,7 @@ if (transactionError) {
 }
 
 /* ================================
-   ✅ LOGIN
+   LOGIN
 ================================ */
 export async function loginAction(formData: FormData) {
   const supabase = await createActionClient();
@@ -400,7 +425,7 @@ export async function loginAction(formData: FormData) {
 }
 
 /* ================================
-   ✅ LOGOUT
+   LOGOUT
 ================================ */
 export async function logoutAction() {
   const supabase = await createActionClient();
@@ -411,7 +436,7 @@ export async function logoutAction() {
 }
 
 /* ================================
-   ✅ CHANGE PASSWORD
+   CHANGE PASSWORD
 ================================ */
 export async function changePasswordAction(
   formData: FormData
@@ -539,7 +564,9 @@ export async function changePasswordAction(
       .maybeSingle();
 
   const username =
-    profile?.username || "Investor";
+    profile?.username ||
+    user.email ||
+    "User";
 
   // ==============================
   // SEND PASSWORD EMAIL
@@ -559,7 +586,7 @@ export async function changePasswordAction(
 }
 
 /* ================================
-   ✅ FORGOT PASSWORD
+   FORGOT PASSWORD
 ================================ */
 export async function forgotPasswordAction(
   formData: FormData
@@ -613,7 +640,7 @@ export async function forgotPasswordAction(
 }
 
 /* ================================
-   ✅ RESET PASSWORD
+   RESET PASSWORD
 ================================ */
 export async function resetPasswordAction(
   formData: FormData
@@ -676,7 +703,7 @@ export async function resetPasswordAction(
   } = await supabase.auth.getUser();
 
   // Get username before signing out
-  let username = "Investor";
+  let username = user?.email || "User";
 
   if (user?.id) {
     const { data: profile } =

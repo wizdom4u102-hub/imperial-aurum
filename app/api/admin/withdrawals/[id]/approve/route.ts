@@ -1,461 +1,560 @@
-import { NextResponse } from 'next/server'
-import { requireAdminApi } from '@/lib/admin'
-import { supabaseAdmin } from '@/lib/supabase/admin'
-import { sendEmail } from '@/lib/email/sendEmail'
-import { withdrawalApprovedEmail } from '@/lib/email/templates'
+import { NextResponse } from "next/server";
+
+import { requireAdminApi } from "@/lib/admin";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { sendEmail } from "@/lib/email/sendEmail";
+
+import {
+  withdrawalApprovedEmail,
+} from "@/lib/email/templates";
 
 export async function POST(
-  req: Request,
+  _req: Request,
   context: {
-    params: Promise<{ id: string }>
+    params: Promise<{ id: string }>;
   }
 ) {
   try {
     console.log(
-      '=========== APPROVE WITHDRAWAL =========='
-    )
+      "=========== APPROVE WITHDRAWAL =========="
+    );
 
-    // ================= ADMIN AUTH =================
-    const admin =
-      await requireAdminApi()
+    // ============================================================
+    // ADMIN AUTHENTICATION
+    // ============================================================
+
+    const admin = await requireAdminApi();
 
     if (!admin.ok) {
       console.error(
-        '❌ ADMIN AUTH FAILED:',
+        "❌ ADMIN AUTH FAILED:",
         admin.error
-      )
+      );
 
       return NextResponse.json(
         {
-          error: admin.error
+          error: admin.error,
         },
         {
-          status: admin.status
+          status: admin.status,
         }
-      )
+      );
     }
 
-    const { id } =
-      await context.params
+    // ============================================================
+    // GET WITHDRAWAL ID
+    // ============================================================
+
+    const { id } = await context.params;
 
     console.log(
-      'WITHDRAWAL ID:',
+      "WITHDRAWAL ID:",
       id
-    )
+    );
 
-    // ================= GET WITHDRAWAL =================
+    if (!id) {
+      return NextResponse.json(
+        {
+          error: "Withdrawal ID is required",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    // ============================================================
+    // GET WITHDRAWAL
+    // ============================================================
+
     const {
       data: withdrawal,
-      error: withdrawalError
-    } =
-      await supabaseAdmin
-        .from('withdrawals')
-        .select('*')
-        .eq('id', id)
-        .single()
+      error: withdrawalError,
+    } = await supabaseAdmin
+      .from("withdrawals")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-    if (
-      withdrawalError ||
-      !withdrawal
-    ) {
+    if (withdrawalError || !withdrawal) {
       console.error(
-        '❌ WITHDRAWAL FETCH ERROR:',
+        "❌ WITHDRAWAL FETCH ERROR:",
         withdrawalError
-      )
+      );
 
       return NextResponse.json(
         {
-          error: 'Withdrawal not found'
+          error: "Withdrawal not found",
         },
         {
-          status: 404
+          status: 404,
         }
-      )
+      );
     }
 
     console.log(
-      'WITHDRAWAL:',
+      "WITHDRAWAL:",
       withdrawal
-    )
+    );
 
-    // ================= ALREADY APPROVED =================
-    if (
-      withdrawal.status === 'approved'
-    ) {
+    // ============================================================
+    // ONLY PENDING WITHDRAWALS CAN BE APPROVED
+    // ============================================================
+
+    if (withdrawal.status !== "pending") {
+      console.error(
+        "❌ WITHDRAWAL IS NOT PENDING:",
+        withdrawal.status
+      );
+
       return NextResponse.json(
         {
-          error: 'Withdrawal already approved'
+          error:
+            `Withdrawal is already ${withdrawal.status}`,
         },
         {
-          status: 400
+          status: 400,
         }
-      )
+      );
     }
 
-    const userId =
-      withdrawal.user_id
+    // ============================================================
+    // BASIC WITHDRAWAL DATA
+    // ============================================================
 
-    const withdrawAmount =
-      Number(
-        withdrawal.amount || 0
-      )
+    const userId = withdrawal.user_id;
 
-    // ================= GET USER EMAIL =================
-const {
-  data: profile,
-} =
-  await supabaseAdmin.auth.admin.getUserById(
-    userId
-  )
-
-const userEmail =
-  profile.user?.email
-
-// ================= GET USERNAME =================
-const {
-  data: userProfile,
-  error: userProfileError,
-} =
-  await supabaseAdmin
-    .from('profiles')
-    .select('username')
-    .eq(
-      'id',
-      userId
-    )
-    .single()
-
-if (
-  userProfileError ||
-  !userProfile
-) {
-  console.error(
-    '❌ PROFILE FETCH ERROR:',
-    userProfileError
-  )
-
-  return NextResponse.json(
-    {
-      error:
-        'User profile not found'
-    },
-    {
-      status: 404
-    }
-  )
-}
-
-const username =
-  userProfile.username ||
-  'User'
-
-    // ================= GET USER BALANCE =================
-    const {
-      data: balance,
-      error: balanceFetchError
-    } =
-      await supabaseAdmin
-        .from('balances')
-        .select('*')
-        .eq(
-          'user_id',
-          userId
-        )
-        .single()
+    const withdrawAmount = Number(
+      withdrawal.amount || 0
+    );
 
     if (
-      balanceFetchError ||
-      !balance
+      !Number.isFinite(withdrawAmount) ||
+      withdrawAmount <= 0
     ) {
       console.error(
-        '❌ BALANCE FETCH ERROR:',
-        balanceFetchError
-      )
+        "❌ INVALID WITHDRAWAL AMOUNT:",
+        withdrawal.amount
+      );
 
       return NextResponse.json(
         {
-          error: 'Balance not found'
+          error: "Invalid withdrawal amount",
         },
         {
-          status: 404
+          status: 400,
         }
-      )
+      );
     }
 
-    const currentCash =
-      Number(
-        balance.cash || 0
-      )
+    console.log(
+      "USER ID:",
+      userId
+    );
 
-    // ================= CHECK FUNDS =================
+    console.log(
+      "WITHDRAWAL AMOUNT:",
+      withdrawAmount
+    );
+
+    // ============================================================
+    // GET USER EMAIL
+    // ============================================================
+
+    const {
+      data: authUserData,
+      error: authUserError,
+    } =
+      await supabaseAdmin.auth.admin.getUserById(
+        userId
+      );
+
+    if (authUserError) {
+      console.error(
+        "❌ USER AUTH FETCH ERROR:",
+        authUserError
+      );
+    }
+
+    const userEmail =
+      authUserData.user?.email;
+
+    // ============================================================
+    // GET USERNAME
+    // ============================================================
+
+    const {
+      data: userProfile,
+      error: userProfileError,
+    } =
+      await supabaseAdmin
+        .from("profiles")
+        .select("username")
+        .eq("id", userId)
+        .single();
+
     if (
-      currentCash <
+      userProfileError ||
+      !userProfile
+    ) {
+      console.error(
+        "❌ PROFILE FETCH ERROR:",
+        userProfileError
+      );
+
+      return NextResponse.json(
+        {
+          error: "User profile not found",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    const username =
+      userProfile.username ||
+      "User";
+
+    // ============================================================
+    // FIND THE EXACT PENDING TRANSACTION
+    //
+    // The withdrawal submission route creates:
+    //
+    // reference_id: withdrawal.id
+    //
+    // Therefore approval MUST use that exact reference.
+    // We must NOT match transactions by amount.
+    // ============================================================
+
+    const {
+      data: pendingTransaction,
+      error: transactionFetchError,
+    } =
+      await supabaseAdmin
+        .from("transactions")
+        .select("*")
+        .eq("reference_id", id)
+        .eq("user_id", userId)
+        .eq("type", "withdrawal")
+        .eq("status", "pending")
+        .maybeSingle();
+
+    if (transactionFetchError) {
+      console.error(
+        "❌ PENDING TRANSACTION FETCH ERROR:",
+        transactionFetchError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Unable to find pending withdrawal transaction",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    if (!pendingTransaction) {
+      console.error(
+        "❌ NO MATCHING PENDING WITHDRAWAL TRANSACTION FOUND:",
+        {
+          withdrawalId: id,
+          userId,
+        }
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Pending withdrawal transaction not found",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    console.log(
+      "✅ EXACT PENDING TRANSACTION FOUND:",
+      pendingTransaction.id
+    );
+
+    // ============================================================
+    // VERIFY TRANSACTION AMOUNT
+    //
+    // This prevents accidentally completing a transaction that
+    // does not correspond to the withdrawal amount.
+    // ============================================================
+
+    const transactionAmount =
+      Number(
+        pendingTransaction.amount || 0
+      );
+
+    if (
+      transactionAmount !==
       withdrawAmount
     ) {
-      return NextResponse.json(
+      console.error(
+        "❌ WITHDRAWAL / TRANSACTION AMOUNT MISMATCH:",
         {
-          error:
-            'Insufficient user balance'
-        },
-        {
-          status: 400
-        }
-      )
-    }
-
-    // ================= DEDUCT USER BALANCE =================
-    const {
-      error: balanceUpdateError
-    } =
-      await supabaseAdmin
-        .from('balances')
-        .update({
-          cash:
-            currentCash -
+          withdrawalAmount:
             withdrawAmount,
-
-          updated_at:
-            new Date().toISOString(),
-        })
-        .eq(
-          'user_id',
-          userId
-        )
-
-    if (
-      balanceUpdateError
-    ) {
-      console.error(
-        '❌ BALANCE UPDATE ERROR:',
-        balanceUpdateError
-      )
+          transactionAmount,
+        }
+      );
 
       return NextResponse.json(
         {
           error:
-            balanceUpdateError.message
+            "Withdrawal and transaction amounts do not match",
         },
         {
-          status: 500
+          status: 409,
         }
-      )
+      );
     }
 
-    // ================= UPDATE WITHDRAWAL STATUS =================
-    const {
-      error: withdrawalUpdateError
-    } =
-      await supabaseAdmin
-        .from('withdrawals')
-        .update({
-          status:
-            'approved',
-        })
-        .eq(
-          'id',
-          id
-        )
-
-    if (
-      withdrawalUpdateError
-    ) {
-      console.error(
-        '❌ WITHDRAWAL UPDATE ERROR:',
-        withdrawalUpdateError
-      )
-
-      return NextResponse.json(
-        {
-          error:
-            withdrawalUpdateError.message
-        },
-        {
-          status: 500
-        }
-      )
-    }
-
-    // =====================================================
-    // FIND EXISTING PENDING WITHDRAWAL TRANSACTION
-    // =====================================================
-
-    const {
-      data: pendingTransactions,
-      error: pendingTransactionsError
-    } =
-      await supabaseAdmin
-        .from('transactions')
-        .select('*')
-        .eq(
-          'user_id',
-          userId
-        )
-        .eq(
-          'type',
-          'withdrawal'
-        )
-        .eq(
-          'status',
-          'pending'
-        )
-        .order(
-          'created_at',
-          {
-            ascending: false
-          }
-        )
-
-    if (
-      pendingTransactionsError
-    ) {
-      console.error(
-        '❌ PENDING TRANSACTION FETCH ERROR:',
-        pendingTransactionsError
-      )
-    }
-
-    // =====================================================
-    // MATCH THE EXISTING TRANSACTION
-    // =====================================================
-
-    const pendingTransaction =
-      pendingTransactions?.find(
-        (transaction) =>
-          Number(
-            transaction.amount
-          ) === withdrawAmount
-      )
+    // ============================================================
+    // IMPORTANT:
+    //
+    // DO NOT TOUCH THE USER BALANCE HERE.
+    //
+    // The withdrawal amount was already deducted when the user
+    // submitted the withdrawal request.
+    //
+    // Approval only changes the withdrawal and transaction state.
+    // ============================================================
 
     console.log(
-      'PENDING WITHDRAWAL TRANSACTION:',
-      pendingTransaction
-    )
+      "✅ APPROVAL WILL NOT DEDUCT USER BALANCE AGAIN"
+    );
 
-    // =====================================================
-    // UPDATE THE EXISTING TRANSACTION
-    // =====================================================
+    // ============================================================
+    // UPDATE WITHDRAWAL STATUS
+    // ============================================================
 
-    if (
-      pendingTransaction
-    ) {
-      const {
-        error: txUpdateError
-      } =
-        await supabaseAdmin
-          .from('transactions')
-          .update({
-            status:
-              'completed',
+    const {
+      error: withdrawalUpdateError,
+    } =
+      await supabaseAdmin
+        .from("withdrawals")
+        .update({
+          status: "approved",
+        })
+        .eq("id", id)
+        .eq("status", "pending");
 
-            description:
-              `Withdrawal of $${withdrawAmount} approved by admin`,
-          })
-          .eq(
-            'id',
-            pendingTransaction.id
-          )
-
-      if (
-        txUpdateError
-      ) {
-        console.error(
-          '❌ TX UPDATE ERROR:',
-          txUpdateError
-        )
-      } else {
-        console.log(
-          '✅ EXISTING WITHDRAWAL TRANSACTION UPDATED:',
-          pendingTransaction.id
-        )
-      }
-    } else {
+    if (withdrawalUpdateError) {
       console.error(
-        '❌ NO MATCHING PENDING WITHDRAWAL TRANSACTION FOUND',
+        "❌ WITHDRAWAL APPROVAL UPDATE ERROR:",
+        withdrawalUpdateError
+      );
+
+      return NextResponse.json(
         {
-          userId,
-          withdrawAmount,
+          error:
+            withdrawalUpdateError.message,
+        },
+        {
+          status: 500,
         }
-      )
+      );
     }
 
-    // =====================================================
-    // SEND APPROVAL EMAIL
-    // =====================================================
+    console.log(
+      "✅ WITHDRAWAL MARKED APPROVED:",
+      id
+    );
+
+    // ============================================================
+    // UPDATE EXISTING PENDING TRANSACTION
+    //
+    // DO NOT INSERT A NEW TRANSACTION.
+    // ============================================================
+
+    const {
+      error: transactionUpdateError,
+    } =
+      await supabaseAdmin
+        .from("transactions")
+        .update({
+          status: "completed",
+
+          description:
+            `Withdrawal of $${withdrawAmount.toFixed(
+              2
+            )} approved by admin`,
+        })
+        .eq(
+          "id",
+          pendingTransaction.id
+        )
+        .eq(
+          "status",
+          "pending"
+        );
+
+    // ============================================================
+    // TRANSACTION UPDATE FAILED
+    //
+    // Attempt to restore the withdrawal to pending so the system
+    // does not leave an approved withdrawal with a pending
+    // transaction.
+    // ============================================================
+
+    if (transactionUpdateError) {
+      console.error(
+        "❌ WITHDRAWAL TRANSACTION UPDATE ERROR:",
+        transactionUpdateError
+      );
+
+      const {
+        error: withdrawalRollbackError,
+      } =
+        await supabaseAdmin
+          .from("withdrawals")
+          .update({
+            status: "pending",
+          })
+          .eq("id", id)
+          .eq("status", "approved");
+
+      if (withdrawalRollbackError) {
+        console.error(
+          "❌ CRITICAL WITHDRAWAL STATUS ROLLBACK ERROR:",
+          withdrawalRollbackError
+        );
+      } else {
+        console.log(
+          "✅ WITHDRAWAL STATUS RESTORED TO PENDING"
+        );
+      }
+
+      return NextResponse.json(
+        {
+          error:
+            transactionUpdateError.message ||
+            "Unable to complete withdrawal transaction",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    console.log(
+      "✅ EXISTING WITHDRAWAL TRANSACTION MARKED COMPLETED:",
+      pendingTransaction.id
+    );
+
+    // ============================================================
+    // SEND USER APPROVAL EMAIL
+    // ============================================================
+
     try {
       if (userEmail) {
+        console.log(
+          "=== WITHDRAWAL APPROVAL EMAIL ==="
+        );
+
+        console.log(
+          "User email recipient:",
+          userEmail
+        );
+
         const emailResult =
           await sendEmail({
             to: userEmail,
+
             subject:
-              'Withdrawal Approved',
+              "Withdrawal Approved",
+
             html:
               withdrawalApprovedEmail(
                 withdrawAmount,
-               username
+                username
               ),
-          })
+          });
 
-        if (
-          !emailResult.success
-        ) {
+        if (!emailResult.success) {
           console.error(
-            'WITHDRAWAL APPROVAL EMAIL FAILED:',
+            "❌ WITHDRAWAL APPROVAL EMAIL FAILED:",
             emailResult.error
-          )
+          );
         } else {
           console.log(
-            'WITHDRAWAL APPROVAL EMAIL SENT:',
+            "✅ WITHDRAWAL APPROVAL EMAIL SENT:",
             userEmail
-          )
+          );
         }
       } else {
         console.error(
-          'WITHDRAWAL APPROVAL EMAIL SKIPPED: USER EMAIL NOT FOUND',
+          "❌ WITHDRAWAL APPROVAL EMAIL SKIPPED: USER EMAIL NOT FOUND",
           {
             userId,
           }
-        )
+        );
       }
-    } catch (
-      emailError
-    ) {
+    } catch (emailError) {
       console.error(
-        'WITHDRAWAL APPROVED EMAIL ERROR:',
+        "❌ WITHDRAWAL APPROVAL EMAIL ERROR:",
         emailError
-      )
+      );
     }
 
-    // =====================================================
-    // SUCCESS RESPONSE
-    // =====================================================
+    // ============================================================
+    // SUCCESS
+    // ============================================================
 
     console.log(
-      '✅ WITHDRAWAL APPROVED SUCCESSFULLY'
-    )
+      "✅ WITHDRAWAL APPROVED SUCCESSFULLY:",
+      {
+        withdrawalId: id,
+        transactionId:
+          pendingTransaction.id,
+        userId,
+        amount: withdrawAmount,
+      }
+    );
 
-    return NextResponse.json({
-      success: true,
-    })
-  } catch (
-    err: unknown
-  ) {
+    return NextResponse.json(
+      {
+        success: true,
+
+        message:
+          "Withdrawal approved successfully",
+
+        withdrawalId: id,
+
+        transactionId:
+          pendingTransaction.id,
+      },
+      {
+        status: 200,
+      }
+    );
+  } catch (err: unknown) {
     console.error(
-      '❌ APPROVE WITHDRAWAL ERROR:',
+      "❌ APPROVE WITHDRAWAL ERROR:",
       err
-    )
+    );
 
     const message =
       err instanceof Error
         ? err.message
-        : 'Server error'
+        : "Server error";
 
     return NextResponse.json(
       {
-        error: message
+        error: message,
       },
       {
-        status: 500
+        status: 500,
       }
-    )
+    );
   }
 }

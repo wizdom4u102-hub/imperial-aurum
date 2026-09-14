@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 
 type Wallet = {
@@ -19,7 +20,6 @@ export default function WithdrawClient({
 
   return (
     <div className="space-y-6">
-
       {/* 💰 AMOUNT INPUT */}
       <div className="bg-zinc-900 p-6 rounded-2xl">
         <label className="text-sm text-zinc-400">
@@ -38,8 +38,21 @@ export default function WithdrawClient({
       {/* 💳 USER WALLETS */}
       <div className="space-y-4">
         {methods.length === 0 ? (
-          <div className="bg-zinc-900 p-6 rounded-2xl text-center text-zinc-400">
-            No wallets found. Please add a withdrawal wallet first.
+          <div className="bg-zinc-900 p-6 rounded-2xl text-center border border-zinc-800">
+            <p className="text-zinc-400">
+              No withdrawal wallets found.
+            </p>
+
+            <p className="text-sm text-zinc-500 mt-2">
+              Add a wallet before requesting a withdrawal.
+            </p>
+
+            <Link
+              href="/wallets/new"
+              className="mt-5 inline-flex items-center justify-center bg-yellow-500 text-black px-5 py-3 rounded-xl font-bold hover:bg-yellow-400 transition"
+            >
+              Add Withdrawal Wallet
+            </Link>
           </div>
         ) : (
           methods.map((m) => (
@@ -61,6 +74,7 @@ export default function WithdrawClient({
 
               {/* SELECT BUTTON */}
               <button
+                type="button"
                 onClick={() => setMethodId(m.id)}
                 className={`mt-4 px-4 py-2 rounded-lg font-semibold ${
                   methodId === m.id
@@ -68,7 +82,9 @@ export default function WithdrawClient({
                     : 'bg-yellow-500 text-black'
                 }`}
               >
-                {methodId === m.id ? 'Selected' : 'Select Wallet'}
+                {methodId === m.id
+                  ? 'Selected'
+                  : 'Select Wallet'}
               </button>
             </div>
           ))
@@ -77,24 +93,25 @@ export default function WithdrawClient({
 
       {/* 🚀 SUBMIT BUTTON */}
       <button
+        type="button"
         disabled={!amount || !methodId || loading}
         onClick={async () => {
           setLoading(true)
 
           try {
             const res = await fetch('/api/withdraw/create', {
-  method: 'POST',
-  credentials: 'include', // ✅ VERY IMPORTANT
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-  amount,
-  method_id: methodId,
- }),
-})
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                amount,
+                method_id: methodId,
+              }),
+            })
 
-            const data = await res.json()
+            const data: { error?: string } = await res.json()
 
             if (!res.ok) {
               alert(data.error || 'Withdrawal failed')
@@ -117,7 +134,6 @@ export default function WithdrawClient({
       >
         {loading ? 'Processing...' : 'Submit Withdrawal'}
       </button>
-
     </div>
   )
 }

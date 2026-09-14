@@ -778,84 +778,6 @@ export async function GET() {
       )
 
       // =====================================================
-      // CREDIT GOLD
-      // =====================================================
-
-      if (earned > 0) {
-        const {
-          data: balance,
-          error: balanceError,
-        } = await supabase
-          .from('balances')
-          .select('*')
-          .eq(
-            'user_id',
-            user.id
-          )
-          .maybeSingle()
-
-        if (balanceError) {
-          throw new Error(
-            balanceError.message
-          )
-        }
-
-        if (!balance) {
-          const {
-            error:
-              balanceInsertError,
-          } = await supabase
-            .from('balances')
-            .insert({
-              user_id:
-                user.id,
-
-              gold:
-                earned,
-
-              cash:
-                0,
-            })
-
-          if (
-            balanceInsertError
-          ) {
-            throw new Error(
-              balanceInsertError.message
-            )
-          }
-        } else {
-          const currentGold =
-            Number(
-              balance.gold || 0
-            )
-
-          const {
-            error:
-              balanceUpdateError,
-          } = await supabase
-            .from('balances')
-            .update({
-              gold:
-                currentGold +
-                earned,
-            })
-            .eq(
-              'user_id',
-              user.id
-            )
-
-          if (
-            balanceUpdateError
-          ) {
-            throw new Error(
-              balanceUpdateError.message
-            )
-          }
-        }
-      }
-
-      // =====================================================
       // FINALIZE FREE CYCLE
       // =====================================================
 
@@ -1011,6 +933,84 @@ export async function GET() {
         throw new Error(
           'Free mining session update returned no session.'
         )
+      }
+
+      // =====================================================
+      // CREDIT GOLD
+      // =====================================================
+
+      if (earned > 0) {
+        const {
+          data: balance,
+          error: balanceError,
+        } = await supabase
+          .from('balances')
+          .select('*')
+          .eq(
+            'user_id',
+            user.id
+          )
+          .maybeSingle()
+
+        if (balanceError) {
+          throw new Error(
+            balanceError.message
+          )
+        }
+
+        if (!balance) {
+          const {
+            error:
+              balanceInsertError,
+          } = await supabase
+            .from('balances')
+            .insert({
+              user_id:
+                user.id,
+
+              gold:
+                earned,
+
+              cash:
+                0,
+            })
+
+          if (
+            balanceInsertError
+          ) {
+            throw new Error(
+              balanceInsertError.message
+            )
+          }
+        } else {
+          const currentGold =
+            Number(
+              balance.gold || 0
+            )
+
+          const {
+            error:
+              balanceUpdateError,
+          } = await supabase
+            .from('balances')
+            .update({
+              gold:
+                currentGold +
+                earned,
+            })
+            .eq(
+              'user_id',
+              user.id
+            )
+
+          if (
+            balanceUpdateError
+          ) {
+            throw new Error(
+              balanceUpdateError.message
+            )
+          }
+        }
       }
 
       // =====================================================

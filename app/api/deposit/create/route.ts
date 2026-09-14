@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/sendEmail'
-import { depositSubmittedEmail } from '@/lib/email/templates'
+import {
+  depositSubmittedEmail,
+  adminNewDepositEmail,
+} from '@/lib/email/templates'
 
 export async function POST(req: Request) {
   try {
@@ -235,10 +238,8 @@ export async function POST(req: Request) {
         )
 
       if (
-        amount <
-          minimumAmount ||
-        amount >
-          maximumAmount
+        amount < minimumAmount ||
+        amount > maximumAmount
       ) {
         return NextResponse.json(
           {
@@ -432,33 +433,86 @@ export async function POST(req: Request) {
     }
 
     // =====================================================
-    // EMAIL NOTIFICATION
+    // EMAIL NOTIFICATIONS
+    // =====================================================
+
+    const userName =
+      typeof user.user_metadata?.name === 'string' &&
+      user.user_metadata.name.trim()
+        ? user.user_metadata.name.trim()
+        : typeof user.user_metadata?.username === 'string' &&
+          user.user_metadata.username.trim()
+        ? user.user_metadata.username.trim()
+        : user.email || 'User'
+
+    // =====================================================
+    // USER EMAIL
+    // =====================================================
+
+    try {
+      if (user.email) {
+        await sendEmail({
+          to:
+            user.email,
+
+          subject:
+            miningPlan
+              ? 'Mining Plan Deposit Received'
+              : 'Deposit Request Received',
+
+          html:
+            depositSubmittedEmail(
+              amount,
+              paymentMethod.name,
+              userName
+            ),
+        })
+      }
+    } catch (emailError) {
+      console.error(
+        'USER DEPOSIT EMAIL ERROR:',
+        emailError
+      )
+
+      // Email failure does NOT cancel the deposit.
+    }
+
+    // =====================================================
+    // ADMIN EMAIL
     // =====================================================
 
     try {
       await sendEmail({
         to:
-          user.email!,
+          'support@imperialaurummining.com',
 
         subject:
           miningPlan
-            ? 'Mining Plan Deposit Received'
-            : 'Deposit Request Received',
+            ? `New Mining Plan Deposit - ${userName}`
+            : `New Deposit Request - ${userName}`,
 
         html:
-          depositSubmittedEmail(
-            amount,
-            paymentMethod.name
-          ),
+          adminNewDepositEmail({
+            name:
+              userName,
+
+            email:
+              user.email || 'N/A',
+
+            amount:
+              amount,
+
+            method:
+              paymentMethod.name,
+          }),
       })
     } catch (emailError) {
       console.error(
-        'DEPOSIT EMAIL ERROR:',
+        'ADMIN DEPOSIT EMAIL ERROR:',
         emailError
       )
 
-      // Email failure does NOT cancel the deposit.
-      // The deposit and transaction already exist.
+      // Admin email failure does NOT cancel the deposit.
     }
 
     // =====================================================
@@ -476,6 +530,16 @@ export async function POST(req: Request) {
     console.log(
       'USER:',
       user.id
+    )
+
+    console.log(
+      'USER NAME:',
+      userName
+    )
+
+    console.log(
+      'USER EMAIL:',
+      user.email
     )
 
     console.log(
