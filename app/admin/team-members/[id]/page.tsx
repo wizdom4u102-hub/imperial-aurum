@@ -29,7 +29,7 @@ async function updateTeamMember(formData: FormData) {
     typeof name !== 'string' ||
     typeof role !== 'string' ||
     typeof bio !== 'string' ||
-    typeof image !== 'string' ||
+    !(image instanceof File) ||
     typeof displayOrder !== 'string' ||
     typeof isActive !== 'string'
   ) {
@@ -39,7 +39,6 @@ async function updateTeamMember(formData: FormData) {
   const cleanName = name.trim()
   const cleanRole = role.trim()
   const cleanBio = bio.trim()
-  const cleanImage = image.trim()
   const parsedOrder = Number(displayOrder)
 
   if (!cleanName) {
@@ -61,13 +60,94 @@ async function updateTeamMember(formData: FormData) {
     throw new Error('Invalid active status.')
   }
 
+  // =====================================================
+  // GET CURRENT TEAM MEMBER
+  // =====================================================
+
+  const {
+    data: currentMember,
+    error: currentMemberError,
+  } = await supabaseAdmin
+    .from('team_members')
+    .select('id, image')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (currentMemberError) {
+    throw new Error(currentMemberError.message)
+  }
+
+  if (!currentMember) {
+    throw new Error('Team member not found.')
+  }
+
+  // =====================================================
+  // IMAGE
+  // =====================================================
+
+  let imageUrl =
+    typeof currentMember.image === 'string'
+      ? currentMember.image
+      : null
+
+  if (image.size > 0) {
+    if (!image.type.startsWith('image/')) {
+      throw new Error('Please select a valid image file.')
+    }
+
+    const maxFileSize = 5 * 1024 * 1024
+
+    if (image.size > maxFileSize) {
+      throw new Error('Image must be 5MB or smaller.')
+    }
+
+    const fileExtension =
+      image.name.split('.').pop()?.toLowerCase() || 'jpg'
+
+    const safeExtension =
+      /^[a-z0-9]+$/.test(fileExtension)
+        ? fileExtension
+        : 'jpg'
+
+    const fileName =
+      `${crypto.randomUUID()}.${safeExtension}`
+
+    const filePath =
+      `team-members/${fileName}`
+
+    const {
+      error: uploadError,
+    } = await supabaseAdmin.storage
+      .from('team-images')
+      .upload(filePath, image, {
+        contentType: image.type,
+        upsert: false,
+      })
+
+    if (uploadError) {
+      throw new Error(uploadError.message)
+    }
+
+    const {
+      data: publicUrlData,
+    } = supabaseAdmin.storage
+      .from('team-images')
+      .getPublicUrl(filePath)
+
+    imageUrl = publicUrlData.publicUrl
+  }
+
+  // =====================================================
+  // UPDATE TEAM MEMBER
+  // =====================================================
+
   const { error } = await supabaseAdmin
     .from('team_members')
     .update({
       name: cleanName,
       role: cleanRole,
       bio: cleanBio || null,
-      image: cleanImage || null,
+      image: imageUrl,
       display_order: parsedOrder,
       is_active: isActive === 'true',
       updated_at: new Date().toISOString(),
@@ -97,6 +177,19 @@ async function deleteTeamMember(formData: FormData) {
     throw new Error('Invalid team member ID.')
   }
 
+  const {
+    data: member,
+    error: memberError,
+  } = await supabaseAdmin
+    .from('team_members')
+    .select('image')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (memberError) {
+    throw new Error(memberError.message)
+  }
+
   const { error } = await supabaseAdmin
     .from('team_members')
     .delete()
@@ -104,6 +197,31 @@ async function deleteTeamMember(formData: FormData) {
 
   if (error) {
     throw new Error(error.message)
+  }
+
+  // Remove the uploaded team image when possible.
+  if (
+    member?.image &&
+    member.image.includes('/storage/v1/object/public/team-images/')
+  ) {
+    const imagePath = member.image.split(
+      '/storage/v1/object/public/team-images/'
+    )[1]
+
+    if (imagePath) {
+      const {
+        error: storageDeleteError,
+      } = await supabaseAdmin.storage
+        .from('team-images')
+        .remove([imagePath])
+
+      if (storageDeleteError) {
+        console.error(
+          'TEAM IMAGE DELETE ERROR:',
+          storageDeleteError
+        )
+      }
+    }
   }
 
   revalidatePath('/admin/team-members')
@@ -217,6 +335,7 @@ export default async function TeamMemberPage({
 
         <form
           action={updateTeamMember}
+          encType="multipart/form-data"
           className="rounded-3xl border border-zinc-800 bg-zinc-900 p-5 sm:p-7 lg:p-8"
         >
           <input
@@ -274,20 +393,20 @@ export default async function TeamMemberPage({
                 htmlFor="image"
                 className="mb-2 block text-sm font-medium text-zinc-300"
               >
-                Image Path / URL
+                Replace Team Member Picture
               </label>
 
               <input
                 id="image"
                 name="image"
-                type="text"
-                defaultValue={member.image ?? ''}
-                placeholder="/images/team/member.jpg"
-                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-yellow-400"
+                type="file"
+                accept="image/*"
+                className="block w-full cursor-pointer rounded-xl border border-zinc-700 bg-black px-4 py-3 text-sm text-zinc-300 outline-none transition file:mr-4 file:rounded-lg file:border-0 file:bg-yellow-400 file:px-4 file:py-2 file:font-semibold file:text-black hover:file:bg-yellow-300 focus:border-yellow-400"
               />
 
               <p className="mt-2 text-xs text-zinc-500">
-                Enter the public image path or URL.
+                Select a new picture only if you want to replace the
+                current one. Maximum file size: 5MB.
               </p>
             </div>
 

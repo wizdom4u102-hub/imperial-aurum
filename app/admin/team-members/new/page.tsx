@@ -20,7 +20,7 @@ async function createTeamMember(formData: FormData) {
     typeof name !== 'string' ||
     typeof role !== 'string' ||
     typeof bio !== 'string' ||
-    typeof image !== 'string' ||
+    !(image instanceof File) ||
     typeof displayOrder !== 'string'
   ) {
     throw new Error('Invalid team member data.')
@@ -29,7 +29,6 @@ async function createTeamMember(formData: FormData) {
   const cleanName = name.trim()
   const cleanRole = role.trim()
   const cleanBio = bio.trim()
-  const cleanImage = image.trim()
   const parsedOrder = Number(displayOrder)
 
   if (!cleanName) {
@@ -44,13 +43,62 @@ async function createTeamMember(formData: FormData) {
     throw new Error('Display order must be a valid number.')
   }
 
+  let imageUrl: string | null = null
+
+  if (image.size > 0) {
+    if (!image.type.startsWith('image/')) {
+      throw new Error('Please select a valid image file.')
+    }
+
+    const maxFileSize = 5 * 1024 * 1024
+
+    if (image.size > maxFileSize) {
+      throw new Error('Image must be 5MB or smaller.')
+    }
+
+    const fileExtension =
+      image.name.split('.').pop()?.toLowerCase() || 'jpg'
+
+    const safeExtension =
+      /^[a-z0-9]+$/.test(fileExtension)
+        ? fileExtension
+        : 'jpg'
+
+    const fileName =
+      `${crypto.randomUUID()}.${safeExtension}`
+
+    const filePath =
+      `team-members/${fileName}`
+
+    const {
+      error: uploadError,
+    } = await supabaseAdmin.storage
+      .from('team-images')
+      .upload(filePath, image, {
+        contentType: image.type,
+        upsert: false,
+      })
+
+    if (uploadError) {
+      throw new Error(uploadError.message)
+    }
+
+    const {
+      data: publicUrlData,
+    } = supabaseAdmin.storage
+      .from('team-images')
+      .getPublicUrl(filePath)
+
+    imageUrl = publicUrlData.publicUrl
+  }
+
   const { error } = await supabaseAdmin
     .from('team_members')
     .insert({
       name: cleanName,
       role: cleanRole,
       bio: cleanBio || null,
-      image: cleanImage || null,
+      image: imageUrl,
       display_order: parsedOrder,
       is_active: true,
       updated_at: new Date().toISOString(),
@@ -122,6 +170,7 @@ export default async function AddTeamMemberPage() {
         {/* FORM */}
         <form
           action={createTeamMember}
+          encType="multipart/form-data"
           className="rounded-3xl border border-zinc-800 bg-zinc-900 p-5 sm:p-7 lg:p-8"
         >
           <div className="space-y-6">
@@ -170,19 +219,19 @@ export default async function AddTeamMemberPage() {
                 htmlFor="image"
                 className="mb-2 block text-sm font-medium text-zinc-300"
               >
-                Image
+                Team Member Picture
               </label>
 
               <input
                 id="image"
                 name="image"
-                type="text"
-                placeholder="/images/team/member.jpg"
-                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-yellow-400"
+                type="file"
+                accept="image/*"
+                className="block w-full cursor-pointer rounded-xl border border-zinc-700 bg-black px-4 py-3 text-sm text-zinc-300 outline-none transition file:mr-4 file:rounded-lg file:border-0 file:bg-yellow-400 file:px-4 file:py-2 file:font-semibold file:text-black hover:file:bg-yellow-300 focus:border-yellow-400"
               />
 
               <p className="mt-2 text-xs text-zinc-500">
-                Enter the public image path or URL.
+                Upload a team member photo. Maximum file size: 5MB.
               </p>
             </div>
 
