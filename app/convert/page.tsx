@@ -78,7 +78,7 @@ export default async function ConvertPage() {
                     </td>
 
                     <td className="p-5 font-bold text-yellow-400">
-                      {Number(tx.amount * 500 || 0).toFixed(2)} GOLD
+                      {Number(tx.amount * 1000 || 0).toFixed(2)} GOLD
                     </td>
 
                     <td className="p-5 font-bold text-emerald-400">

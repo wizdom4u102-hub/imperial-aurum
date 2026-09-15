@@ -21,29 +21,42 @@ export default function SmartsuppChat() {
 
   // Never load Smartsupp anywhere in the admin area.
   const isAdmin =
-    pathname === "/admin" || pathname.startsWith("/admin/");
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/");
 
   useEffect(() => {
     if (isAdmin) {
       return;
     }
 
-    const smartsupp = window.smartsupp;
+    const sendPageview = () => {
+      const smartsupp = window.smartsupp;
 
-    if (typeof smartsupp !== "function") {
-      return;
-    }
+      if (typeof smartsupp !== "function") {
+        return;
+      }
 
-    const currentUrl =
-      window.location.origin + pathname;
+      const currentUrl =
+        window.location.origin + pathname;
 
-    /*
-     * Notify Smartsupp when the Next.js route changes.
-     *
-     * This is important because Next.js App Router navigation
-     * does not perform a full browser page reload.
-     */
-    smartsupp("pageview", currentUrl);
+      /*
+       * Notify Smartsupp when the Next.js route changes.
+       *
+       * This is important because Next.js App Router navigation
+       * does not perform a full browser page reload.
+       */
+      smartsupp("pageview", currentUrl);
+    };
+
+    // Give the Smartsupp loader time to initialize.
+    const timer = window.setTimeout(
+      sendPageview,
+      1000
+    );
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [pathname, isAdmin]);
 
   if (isAdmin) {

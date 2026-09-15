@@ -4,7 +4,9 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
+
 import { useRouter } from "next/navigation";
 import { logoutAction } from "../../actions/auth";
 import Link from "next/link";
@@ -36,6 +38,53 @@ export default function ClientDashboard({
   const router = useRouter();
   const [menuOpen, setMenuOpen] =
     useState(false);
+
+      const inactivityFormRef =
+    useRef<HTMLFormElement>(null);
+
+      useEffect(() => {
+    const INACTIVITY_LIMIT = 10 * 60 * 1000;
+
+    let inactivityTimer: number;
+
+    const resetInactivityTimer = () => {
+      window.clearTimeout(inactivityTimer);
+
+      inactivityTimer = window.setTimeout(() => {
+        inactivityFormRef.current?.requestSubmit();
+      }, INACTIVITY_LIMIT);
+    };
+
+    const activityEvents: Array<keyof WindowEventMap> = [
+      "mousemove",
+      "mousedown",
+      "keydown",
+      "touchstart",
+      "scroll",
+      "click",
+    ];
+
+    activityEvents.forEach((event) => {
+      window.addEventListener(
+        event,
+        resetInactivityTimer,
+        { passive: true }
+      );
+    });
+
+    resetInactivityTimer();
+
+    return () => {
+      window.clearTimeout(inactivityTimer);
+
+      activityEvents.forEach((event) => {
+        window.removeEventListener(
+          event,
+          resetInactivityTimer
+        );
+      });
+    };
+  }, []);
 
   const cardGrid =
     "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6";
@@ -249,6 +298,11 @@ export default function ClientDashboard({
 
   return (
     <div className="flex min-h-screen w-full bg-black text-white overflow-x-hidden">
+          <form
+        ref={inactivityFormRef}
+        action={logoutAction}
+        className="hidden"
+      />
       {/* SIDEBAR */}
       <aside
         className={`
@@ -1084,20 +1138,34 @@ function MiningCard({
       }
     };
 
-  // =====================================================
+    // =====================================================
   // TIMER DISPLAY
+  //
+  // UI DISPLAY ONLY
+  //
+  // The actual mining session still uses the full
+  // server-provided `timeLeft`.
+  //
+  // Only the visual countdown is displayed as a
+  // 24-hour cycle.
   // =====================================================
+
+  const DAILY_DISPLAY_DURATION =
+    24 * 60 * 60 * 1000;
+
+  const displayTimeLeft =
+    timeLeft % DAILY_DISPLAY_DURATION;
 
   const hours =
     Math.floor(
-      timeLeft /
+      displayTimeLeft /
         (1000 * 60 * 60)
     );
 
   const minutes =
     Math.floor(
       (
-        timeLeft %
+        displayTimeLeft %
           (1000 * 60 * 60)
       ) /
         (1000 * 60)
@@ -1106,7 +1174,7 @@ function MiningCard({
   const seconds =
     Math.floor(
       (
-        timeLeft %
+        displayTimeLeft %
           (1000 * 60)
       ) /
         1000

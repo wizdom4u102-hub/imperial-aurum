@@ -2040,3 +2040,153 @@ export function tradingBotDepositApprovedEmail({
     `
   );
 }
+
+/* ================================
+   🪙 GOLD CONVERSION
+================================ */
+
+export function goldConversionEmail({
+  name,
+  goldConverted,
+  cashAdded,
+  remainingGold,
+  newCashBalance,
+}: {
+  name: string;
+  goldConverted: number;
+  cashAdded: number;
+  remainingGold: number;
+  newCashBalance: number;
+}) {
+  return emailLayout(
+    "Gold Conversion Successful",
+    `
+      <p>Hello <strong>${name}</strong>,</p>
+
+      <p>
+        Your Gold conversion has been completed successfully.
+        Your Gold has been converted into Cash and credited to your
+        account balance.
+      </p>
+
+      <table
+        width="100%"
+        cellpadding="10"
+        cellspacing="0"
+        style="
+          background:#27272a;
+          border-radius:10px;
+          margin:25px 0;
+          color:#ffffff;
+        "
+      >
+        <tr>
+          <td style="color:#a1a1aa;">
+            Gold Converted
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#facc15;
+              font-weight:bold;
+              font-size:18px;
+            "
+          >
+            ${goldConverted.toFixed(2)} Gold
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Conversion Rate
+          </td>
+
+          <td
+            align="right"
+            style="font-weight:bold;"
+          >
+            1,000 Gold = $1.00
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Cash Added
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#22c55e;
+              font-weight:bold;
+              font-size:18px;
+            "
+          >
+            $${cashAdded.toFixed(2)}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Remaining Gold
+          </td>
+
+          <td
+            align="right"
+            style="font-weight:bold;"
+          >
+            ${remainingGold.toFixed(2)} Gold
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Cash Balance
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#22c55e;
+              font-weight:bold;
+            "
+          >
+            $${newCashBalance.toFixed(2)}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Status
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#22c55e;
+              font-weight:bold;
+            "
+          >
+            Completed
+          </td>
+        </tr>
+      </table>
+
+      <p>
+        The converted amount is now available in your
+        <strong>Cash Balance</strong>.
+      </p>
+
+      <p>
+        Thank you for choosing
+        <strong>Imperial Aurum Mining.</strong>
+      </p>
+
+      <p>
+        Best regards,<br>
+        <strong>Imperial Aurum Mining Team</strong>
+      </p>
+    `
+  );
+}

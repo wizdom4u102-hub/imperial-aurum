@@ -35,8 +35,8 @@ export default function NewConvertPage() {
   useEffect(() => {
     const goldAmount = Number(gold || 0)
 
-    // 500 GOLD = $1
-    setCash(goldAmount / 500)
+    // 1000 GOLD = $1
+    setCash(goldAmount / 1000)
   }, [gold])
 
   // ================= SUBMIT =================
@@ -132,7 +132,7 @@ export default function NewConvertPage() {
             </p>
 
             <p className="text-zinc-300 mt-1">
-              500 GOLD = $1 USD
+              1000 GOLD = $1 USD
             </p>
 
             <p className="text-zinc-500 text-sm mt-2">
