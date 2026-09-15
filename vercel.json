@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/shared-plan/process-roi",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
