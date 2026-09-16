@@ -388,15 +388,24 @@ export const getTradeById = async (
 export const createTrade = async (
   trade: BotTradeInsert
 ): Promise<RepositoryResult<BotTradeRecord>> => {
+
   const supabase = supabaseAdmin;
 
-  const { data, error } = await supabase
+  const {
+    data,
+    error,
+  } = await supabase
     .from("bot_trades")
     .insert(trade)
-    .select()
-    .single();
+    .select("*");
 
   if (error) {
+
+    console.error(
+      "[TRADING BOT] bot_trades INSERT error:",
+      error
+    );
+
     return {
       data: null,
       error: {
@@ -404,10 +413,51 @@ export const createTrade = async (
         message: error.message,
       },
     };
+
+  }
+
+  if (
+    !data ||
+    data.length === 0
+  ) {
+
+    console.error(
+      "[TRADING BOT] bot_trades INSERT returned no row."
+    );
+
+    return {
+      data: null,
+      error: {
+        code: INSERT_FAILED,
+        message:
+          "Trade insert completed but no trade record was returned.",
+      },
+    };
+
+  }
+
+  if (
+    data.length > 1
+  ) {
+
+    console.error(
+      "[TRADING BOT] bot_trades INSERT returned multiple rows:",
+      data.length
+    );
+
+    return {
+      data: null,
+      error: {
+        code: INSERT_FAILED,
+        message:
+          `Trade insert returned ${data.length} rows instead of one.`,
+      },
+    };
+
   }
 
   return {
-    data,
+    data: data[0],
     error: null,
   };
 };
