@@ -92,7 +92,7 @@ export const getTradingBotsByUserId = async (
 export const getActiveTradingBots = async (): Promise<
   RepositoryResult<TradingBotRecord[]>
 > => {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
 
   const { data, error } = await supabase
     .from("user_trading_bots")
