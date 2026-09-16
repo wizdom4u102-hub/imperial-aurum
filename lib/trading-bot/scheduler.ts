@@ -105,5 +105,4 @@ export async function runTradingBotScheduler(): Promise<void> {
   console.log(
     "[TRADING BOT] Scheduler Completed"
   );
-
 }
