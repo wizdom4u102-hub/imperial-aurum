@@ -44,6 +44,12 @@ export async function runTradingBotScheduler(): Promise<void> {
     result.error ||
     !result.data
   ) {
+
+    console.error(
+      "[TRADING BOT] Unable to load active trading bots:",
+      result.error?.message
+    );
+
     throw new Error(
       result.error?.message ??
       "Unable to load active trading bots."
@@ -53,10 +59,15 @@ export async function runTradingBotScheduler(): Promise<void> {
   const activeBots: TradingBotRecord[] =
     result.data;
 
+  console.log(
+    "[TRADING BOT] Active bots found:",
+    activeBots.length
+  );
+
   for (const bot of activeBots) {
 
     console.log(
-      "Processing bot:",
+      "[TRADING BOT] Processing bot:",
       bot.id
     );
 
@@ -64,14 +75,35 @@ export async function runTradingBotScheduler(): Promise<void> {
       bot
     );
 
+    console.log(
+      "[TRADING BOT] Finished closing expired trades:",
+      bot.id
+    );
+
     await openTradeIfRequired(
       bot
     );
 
+    console.log(
+      "[TRADING BOT] Finished trade-opening check:",
+      bot.id
+    );
   }
+
+  console.log(
+    "[TRADING BOT] Checking expired bots"
+  );
 
   await checkExpiredBots();
 
+  console.log(
+    "[TRADING BOT] Checking renewal eligibility"
+  );
+
   await checkRenewalEligibility();
+
+  console.log(
+    "[TRADING BOT] Scheduler Completed"
+  );
 
 }
