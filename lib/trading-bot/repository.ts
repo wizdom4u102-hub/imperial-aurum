@@ -39,26 +39,73 @@ import {
 export const getTradingBotById = async (
   id: string
 ): Promise<RepositoryResult<TradingBotRecord>> => {
-  const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const supabase = supabaseAdmin;
+
+  const {
+    data,
+    error,
+  } = await supabase
     .from("user_trading_bots")
     .select("*")
-    .eq("id", id)
-    .single();
+    .eq("id", id);
 
   if (error) {
+
+    console.error(
+      "[TRADING BOT] getTradingBotById database error:",
+      error.message
+    );
+
+    return {
+      data: null,
+      error: {
+        code: DATABASE_QUERY_FAILED,
+        message: error.message,
+      },
+    };
+
+  }
+
+  if (!data || data.length === 0) {
+
+    console.error(
+      "[TRADING BOT] Trading bot not found:",
+      id
+    );
+
     return {
       data: null,
       error: {
         code: RECORD_NOT_FOUND,
-        message: error.message,
+        message: "Trading bot not found.",
       },
     };
+
+  }
+
+  if (data.length > 1) {
+
+    console.error(
+      "[TRADING BOT] Multiple trading bots found for ID:",
+      id,
+      "count:",
+      data.length
+    );
+
+    return {
+      data: null,
+      error: {
+        code: DATABASE_QUERY_FAILED,
+        message:
+          `Multiple trading bot records found for ID ${id}.`,
+      },
+    };
+
   }
 
   return {
-    data,
+    data: data[0],
     error: null,
   };
 };
