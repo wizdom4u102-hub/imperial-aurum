@@ -2,6 +2,10 @@
 
 import React from "react";
 import { useState } from "react";
+import {
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
 import TopUpBotDepositModal from "./modals/top-up-bot-deposit-modal";
 
@@ -41,9 +45,7 @@ import type {
   TradingBotRecord,
 } from "@/lib/trading-bot/types";
 
-
 type TradeDirection = "BUY" | "SELL";
-
 
 interface DashboardTradeRow {
   id: string;
@@ -55,55 +57,68 @@ interface DashboardTradeRow {
 }
 
 interface DashboardHistoryRow {
-
   id: string;
-
   transactionType: string;
-
   botName?: string;
-
   amount: number;
-
   status: string;
-
   description: string;
-
   createdAt: string;
-
 }
-
 
 const TradingBotDashboard: React.FC = () => {
   const router = useRouter();
 
   const [
-  selectedBot,
-  setSelectedBot,
-] = useState<
-  TradingBotRecord | null
->(null);
+    selectedBot,
+    setSelectedBot,
+  ] = useState<TradingBotRecord | null>(null);
 
-const [
-  topUpModalOpen,
-  setTopUpModalOpen,
-] = useState(false);
+  const [
+    topUpModalOpen,
+    setTopUpModalOpen,
+  ] = useState(false);
 
-const [
-  transferBot,
-  setTransferBot,
-] = useState<
-  TradingBotRecord | null
->(null);
+  const [
+    transferBot,
+    setTransferBot,
+  ] = useState<TradingBotRecord | null>(null);
 
-const [
-  transferModalOpen,
-  setTransferModalOpen,
-] = useState(false);
+  const [
+    transferModalOpen,
+    setTransferModalOpen,
+  ] = useState(false);
 
-const [
-  dashboardTransferOpen,
-  setDashboardTransferOpen,
-] = useState(false);
+  const [
+    dashboardTransferOpen,
+    setDashboardTransferOpen,
+  ] = useState(false);
+
+  /*
+   * Collapsible dashboard sections
+   *
+   * All four sections are collapsed by default
+   * to keep the Overview dashboard compact.
+   */
+  const [
+    liveTradesOpen,
+    setLiveTradesOpen,
+  ] = useState(false);
+
+  const [
+    financialLedgerOpen,
+    setFinancialLedgerOpen,
+  ] = useState(false);
+
+  const [
+    activityTimelineOpen,
+    setActivityTimelineOpen,
+  ] = useState(false);
+
+  const [
+    notificationsOpen,
+    setNotificationsOpen,
+  ] = useState(false);
 
   const {
     dashboard,
@@ -112,44 +127,31 @@ const [
     refreshDashboard,
   } = useTradingBotDashboard();
 
-
-
   const handleOpenBotDetails = (
-  botId: string
-) => {
-  router.push(
-    `/dashboard/trading-bot/${botId}`
-  );
-};
+    botId: string
+  ) => {
+    router.push(
+      `/dashboard/trading-bot/${botId}`
+    );
+  };
 
-const handleTopUpBot = (
-  bot: TradingBotRecord
-) => {
+  const handleTopUpBot = (
+    bot: TradingBotRecord
+  ) => {
+    setSelectedBot(bot);
+    setTopUpModalOpen(true);
+  };
 
-  setSelectedBot(bot);
-
-  setTopUpModalOpen(true);
-
-};
-
-const handleTransferFunds = (
-  bot: TradingBotRecord
-) => {
-
-  setTransferBot(bot);
-
-  setTransferModalOpen(true);
-
-};
-
-
+  const handleTransferFunds = (
+    bot: TradingBotRecord
+  ) => {
+    setTransferBot(bot);
+    setTransferModalOpen(true);
+  };
 
   if (loading) {
-
     return (
-
       <DashboardLayout>
-
         <div
           className="
             min-h-[60vh]
@@ -158,7 +160,6 @@ const handleTransferFunds = (
             justify-center
           "
         >
-
           <div
             className="
               text-[#A1A1AA]
@@ -167,64 +168,60 @@ const handleTransferFunds = (
           >
             Loading trading terminal...
           </div>
-
         </div>
-
       </DashboardLayout>
-
     );
-
   }
 
-
-
   if (error) {
-
     return (
-
       <DashboardLayout>
-
         <DashboardErrorState
-
           onRetry={
             refreshDashboard
           }
-
         />
-
       </DashboardLayout>
-
     );
-
   }
-
-
 
   if (!dashboard) {
-
     return null;
-
   }
 
-  console.log("DASHBOARD STATISTICS:", dashboard.statistics);
-console.log("DASHBOARD PERFORMANCE:", dashboard.performance);
-console.log("DASHBOARD PERFORMANCE SUMMARY:", dashboard.performanceSummary);
-console.log("DASHBOARD RECENT TRADES:", dashboard.recentTrades);
+  console.log(
+    "DASHBOARD STATISTICS:",
+    dashboard.statistics
+  );
 
   console.log(
-  "Activities:",
-  dashboard.activities
-);
+    "DASHBOARD PERFORMANCE:",
+    dashboard.performance
+  );
 
-console.log(
-  "First Activity:",
-  dashboard.activities[0]
-);
+  console.log(
+    "DASHBOARD PERFORMANCE SUMMARY:",
+    dashboard.performanceSummary
+  );
+
+  console.log(
+    "DASHBOARD RECENT TRADES:",
+    dashboard.recentTrades
+  );
+
+  console.log(
+    "Activities:",
+    dashboard.activities
+  );
+
+  console.log(
+    "First Activity:",
+    dashboard.activities[0]
+  );
 
   const liveTrades: DashboardTradeRow[] =
     dashboard.recentTrades.map(
       (trade) => ({
-
         id:
           trade.id,
 
@@ -249,114 +246,132 @@ console.log(
           trade.closed_at ??
           trade.opened_at ??
           new Date().toISOString(),
-
       })
     );
 
-    console.log("Dashboard History:", dashboard.history);
-console.log("History Length:", dashboard.history.length);
-
-if (dashboard.history.length > 0) {
-  console.log("First History:", dashboard.history[0]);
-}
-
-const tradingHistory: DashboardHistoryRow[] =
-
-  dashboard.history.map(
-    (transaction) => ({
-
-      id:
-        transaction.id,
-
-      transactionType:
-        transaction.transaction_type,
-
-      botName:
-        transaction.bot?.bot_name ??
-        "Multiple Bots",
-
-      amount:
-        Number(
-          transaction.amount
-        ),
-
-      status:
-        transaction.status,
-
-      description:
-        transaction.description ??
-        "",
-
-      createdAt:
-        transaction.created_at ??
-        "",
-
-    })
+  console.log(
+    "Dashboard History:",
+    dashboard.history
   );
-    const activityTimeline = dashboard.activities.map(
-  (activity) => ({
-    id: activity.id,
-    title: activity.action,
-    description: activity.message,
-    timestamp: activity.created_at
-      ? new Date(activity.created_at).toLocaleString()
-      : "",
-  })
-);
 
-console.log(
-  "Mapped Activity Timeline:",
-  activityTimeline
-);
+  console.log(
+    "History Length:",
+    dashboard.history.length
+  );
 
-console.log(
-  "Mapped Length:",
-  activityTimeline.length
-);
+  if (dashboard.history.length > 0) {
+    console.log(
+      "First History:",
+      dashboard.history[0]
+    );
+  }
 
-const notifications = dashboard.notifications.map(
-  (notification) => ({
-    id: notification.id,
+  const tradingHistory: DashboardHistoryRow[] =
+    dashboard.history.map(
+      (transaction) => ({
+        id:
+          transaction.id,
 
-    type: "info" as const,
+        transactionType:
+          transaction.transaction_type,
 
-    title:
-      notification.subject ??
-      "Notification",
+        botName:
+          transaction.bot?.bot_name ??
+          "Multiple Bots",
 
-    message:
-      notification.message ??
-      "",
+        amount:
+          Number(
+            transaction.amount
+          ),
 
-    timestamp:
-      notification.created_at ??
-      "",
+        status:
+          transaction.status,
 
-    is_read:
-      notification.is_read,
-  })
-);
+        description:
+          transaction.description ??
+          "",
 
+        createdAt:
+          transaction.created_at ??
+          "",
+      })
+    );
 
+  const activityTimeline =
+    dashboard.activities.map(
+      (activity) => ({
+        id:
+          activity.id,
+
+        title:
+          activity.action,
+
+        description:
+          activity.message,
+
+        timestamp:
+          activity.created_at
+            ? new Date(
+                activity.created_at
+              ).toLocaleString()
+            : "",
+      })
+    );
+
+  console.log(
+    "Mapped Activity Timeline:",
+    activityTimeline
+  );
+
+  console.log(
+    "Mapped Length:",
+    activityTimeline.length
+  );
+
+  const notifications =
+    dashboard.notifications.map(
+      (notification) => ({
+        id:
+          notification.id,
+
+        type:
+          "info" as const,
+
+        title:
+          notification.subject ??
+          "Notification",
+
+        message:
+          notification.message ??
+          "",
+
+        timestamp:
+          notification.created_at ??
+          "",
+
+        is_read:
+          notification.is_read,
+      })
+    );
 
   return (
-
     <DashboardLayout>
-
       <div
         className="
           space-y-8
         "
       >
-
         <DashboardHeader
-  loading={loading}
-  onRefresh={refreshDashboard}
-  onActivateBot={() =>
-    router.push("/dashboard/trading-bot/marketplace")
-  }
-/>
-
+          loading={loading}
+          onRefresh={
+            refreshDashboard
+          }
+          onActivateBot={() =>
+            router.push(
+              "/dashboard/trading-bot/marketplace"
+            )
+          }
+        />
 
         <section
           className="
@@ -369,28 +384,24 @@ const notifications = dashboard.notifications.map(
             shadow-xl
           "
         >
+          <DashboardStatistics
+            statistics={
+              dashboard.statistics
+            }
 
-         <DashboardStatistics
-  statistics={
-    dashboard.statistics
-  }
+            totalAvailableBalance={
+              dashboard.totalAvailableBalance
+            }
 
-  totalAvailableBalance={
-    dashboard.totalAvailableBalance
-  }
+            activeBotsCount={
+              dashboard.activeBotsCount
+            }
 
-  activeBotsCount={
-    dashboard.activeBotsCount
-  }
-
-  onTransferFunds={() => {
-    setDashboardTransferOpen(true);
-  }}
-/>
-
+            onTransferFunds={() => {
+              setDashboardTransferOpen(true);
+            }}
+          />
         </section>
-
-
 
         <section
           className="
@@ -401,46 +412,38 @@ const notifications = dashboard.notifications.map(
             gap-6
           "
         >
-
           {
-  dashboard.performanceSummary.map(
-  (card, index) => (
+            dashboard.performanceSummary.map(
+              (card, index) => (
+                <ProfitSummaryCard
+                  key={
+                    `${card.bot_name}-${index}`
+                  }
 
-    <ProfitSummaryCard
+                  title={
+                    card.bot_name
+                  }
 
-      key={
-        `${card.bot_name}-${index}`
-      }
+                  value={
+                    card.performance_value
+                  }
 
-      title={
-        card.bot_name
-      }
+                  description={
+                    `${card.trade_count} trades • ${card.win_rate}% win rate`
+                  }
 
-      value={
-        card.performance_value
-      }
-
-      description={
-        `${card.trade_count} trades • ${card.win_rate}% win rate`
-      }
-
-      trend={
-        card.performance_value > 0
-          ? "positive"
-          : card.performance_value < 0
-            ? "negative"
-            : "neutral"
-      }
-
-    />
-
-  )
-)
-}
-
+                  trend={
+                    card.performance_value > 0
+                      ? "positive"
+                      : card.performance_value < 0
+                        ? "negative"
+                        : "neutral"
+                  }
+                />
+              )
+            )
+          }
         </section>
-
-
 
         <section
           className="
@@ -451,9 +454,7 @@ const notifications = dashboard.notifications.map(
             p-5
           "
         >
-
           <PortfolioAllocationCard
-
             totalAllocated={0}
 
             activeBots={
@@ -465,36 +466,28 @@ const notifications = dashboard.notifications.map(
             totalPercentage={100}
 
             allocations={[]}
-
           />
-
         </section>
-
-
 
         <section>
-
           <ActiveBotsSection
+            activeBots={
+              dashboard.activeBots
+            }
 
-  activeBots={
-    dashboard.activeBots
-  }
+            onBotSelect={
+              handleOpenBotDetails
+            }
 
-  onBotSelect={
-    handleOpenBotDetails
-  }
+            onAddFunds={
+              handleTopUpBot
+            }
 
-  onAddFunds={
-    handleTopUpBot
-  }
-
-    onTransferFunds={handleTransferFunds}
-
-/>
-
+            onTransferFunds={
+              handleTransferFunds
+            }
+          />
         </section>
-
-
 
         <section
           className="
@@ -505,9 +498,7 @@ const notifications = dashboard.notifications.map(
             p-5
           "
         >
-
           <RoiProgress
-
             currentROI={
               dashboard.statistics.totalROI
             }
@@ -516,7 +507,8 @@ const notifications = dashboard.notifications.map(
 
             remainingROI={
               Math.max(
-                100 - dashboard.statistics.totalROI,
+                100 -
+                  dashboard.statistics.totalROI,
                 0
               )
             }
@@ -533,30 +525,24 @@ const notifications = dashboard.notifications.map(
                 ? "On Track"
                 : "Needs Attention"
             }
-
           />
-
         </section>
 
-
-
         <section>
-
           <BotPerformanceCharts
-
             profitData={
               dashboard.performance.profit_data ?? []
             }
 
             roiData={
-               dashboard.performance.roi_data ?? []
+              dashboard.performance.roi_data ?? []
             }
-
           />
-
         </section>
 
-
+        {/* =====================================================
+            LIVE TRADES + FINANCIAL LEDGER
+            ===================================================== */}
 
         <section
           className="
@@ -565,36 +551,206 @@ const notifications = dashboard.notifications.map(
             gap-6
           "
         >
+          {/* Live Trades */}
 
-          <LiveTradesTable
+          <div
+            className="
+              overflow-hidden
+              rounded-2xl
+              border
+              border-white/10
+              bg-white/[0.03]
+            "
+          >
+            <button
+              type="button"
+              onClick={() =>
+                setLiveTradesOpen(
+                  (previous) => !previous
+                )
+              }
+              aria-expanded={
+                liveTradesOpen
+              }
+              className="
+                flex
+                w-full
+                items-center
+                justify-between
+                gap-4
+                p-5
+                text-left
+                transition
+                hover:bg-white/[0.03]
+              "
+            >
+              <div>
+                <h2
+                  className="
+                    text-base
+                    font-semibold
+                    text-white
+                    sm:text-lg
+                  "
+                >
+                  Live Trades
+                </h2>
 
-            trades={
-              liveTrades
-            }
+                <p
+                  className="
+                    mt-1
+                    text-xs
+                    text-zinc-500
+                  "
+                >
+                  Current trading activity
+                </p>
+              </div>
 
-            loading={false}
+              {liveTradesOpen ? (
+                <ChevronUp
+                  className="
+                    h-5
+                    w-5
+                    shrink-0
+                    text-cyan-400
+                  "
+                />
+              ) : (
+                <ChevronDown
+                  className="
+                    h-5
+                    w-5
+                    shrink-0
+                    text-cyan-400
+                  "
+                />
+              )}
+            </button>
 
-            error={null}
+            {liveTradesOpen && (
+              <div
+                className="
+                  border-t
+                  border-white/10
+                  p-5
+                "
+              >
+                <LiveTradesTable
+                  trades={
+                    liveTrades
+                  }
 
-          />
+                  loading={false}
 
+                  error={null}
+                />
+              </div>
+            )}
+          </div>
 
+          {/* Trading Bot Financial Ledger */}
 
-          <TradingHistory
+          <div
+            className="
+              overflow-hidden
+              rounded-2xl
+              border
+              border-white/10
+              bg-white/[0.03]
+            "
+          >
+            <button
+              type="button"
+              onClick={() =>
+                setFinancialLedgerOpen(
+                  (previous) => !previous
+                )
+              }
+              aria-expanded={
+                financialLedgerOpen
+              }
+              className="
+                flex
+                w-full
+                items-center
+                justify-between
+                gap-4
+                p-5
+                text-left
+                transition
+                hover:bg-white/[0.03]
+              "
+            >
+              <div>
+                <h2
+                  className="
+                    text-base
+                    font-semibold
+                    text-white
+                    sm:text-lg
+                  "
+                >
+                  Trading Bot Financial Ledger
+                </h2>
 
-            history={
-              tradingHistory
-            }
+                <p
+                  className="
+                    mt-1
+                    text-xs
+                    text-zinc-500
+                  "
+                >
+                  Complete trading bot financial activity
+                </p>
+              </div>
 
-            loading={false}
+              {financialLedgerOpen ? (
+                <ChevronUp
+                  className="
+                    h-5
+                    w-5
+                    shrink-0
+                    text-cyan-400
+                  "
+                />
+              ) : (
+                <ChevronDown
+                  className="
+                    h-5
+                    w-5
+                    shrink-0
+                    text-cyan-400
+                  "
+                />
+              )}
+            </button>
 
-            error={null}
+            {financialLedgerOpen && (
+              <div
+                className="
+                  border-t
+                  border-white/10
+                  p-5
+                "
+              >
+                <TradingHistory
+                  history={
+                    tradingHistory
+                  }
 
-          />
+                  loading={false}
 
+                  error={null}
+                />
+              </div>
+            )}
+          </div>
         </section>
 
-
+        {/* =====================================================
+            ACTIVITY TIMELINE + NOTIFICATIONS
+            ===================================================== */}
 
         <section
           className="
@@ -603,131 +759,292 @@ const notifications = dashboard.notifications.map(
             gap-6
           "
         >
+          {/* Activity Timeline */}
 
-          <ActivityTimeline
+          <div
+            className="
+              overflow-hidden
+              rounded-2xl
+              border
+              border-white/10
+              bg-white/[0.03]
+            "
+          >
+            <button
+              type="button"
+              onClick={() =>
+                setActivityTimelineOpen(
+                  (previous) => !previous
+                )
+              }
+              aria-expanded={
+                activityTimelineOpen
+              }
+              className="
+                flex
+                w-full
+                items-center
+                justify-between
+                gap-4
+                p-5
+                text-left
+                transition
+                hover:bg-white/[0.03]
+              "
+            >
+              <div>
+                <h2
+                  className="
+                    text-base
+                    font-semibold
+                    text-white
+                    sm:text-lg
+                  "
+                >
+                  Activity Timeline
+                </h2>
 
-           activities={
-            activityTimeline
-            }
+                <p
+                  className="
+                    mt-1
+                    text-xs
+                    text-zinc-500
+                  "
+                >
+                  Recent trading bot activity
+                </p>
+              </div>
 
-            loading={false}
+              {activityTimelineOpen ? (
+                <ChevronUp
+                  className="
+                    h-5
+                    w-5
+                    shrink-0
+                    text-cyan-400
+                  "
+                />
+              ) : (
+                <ChevronDown
+                  className="
+                    h-5
+                    w-5
+                    shrink-0
+                    text-cyan-400
+                  "
+                />
+              )}
+            </button>
 
-            />
+            {activityTimelineOpen && (
+              <div
+                className="
+                  border-t
+                  border-white/10
+                  p-5
+                "
+              >
+                <ActivityTimeline
+                  activities={
+                    activityTimeline
+                  }
 
+                  loading={false}
+                />
+              </div>
+            )}
+          </div>
 
+          {/* Notifications */}
 
-          <RecentNotificationsPanel
+          <div
+            className="
+              overflow-hidden
+              rounded-2xl
+              border
+              border-white/10
+              bg-white/[0.03]
+            "
+          >
+            <button
+              type="button"
+              onClick={() =>
+                setNotificationsOpen(
+                  (previous) => !previous
+                )
+              }
+              aria-expanded={
+                notificationsOpen
+              }
+              className="
+                flex
+                w-full
+                items-center
+                justify-between
+                gap-4
+                p-5
+                text-left
+                transition
+                hover:bg-white/[0.03]
+              "
+            >
+              <div>
+                <h2
+                  className="
+                    text-base
+                    font-semibold
+                    text-white
+                    sm:text-lg
+                  "
+                >
+                  Notifications
+                </h2>
 
-            notifications={
-              notifications
-            }
+                <p
+                  className="
+                    mt-1
+                    text-xs
+                    text-zinc-500
+                  "
+                >
+                  Recent trading bot notifications
+                </p>
+              </div>
 
-            loading={false}
+              {notificationsOpen ? (
+                <ChevronUp
+                  className="
+                    h-5
+                    w-5
+                    shrink-0
+                    text-cyan-400
+                  "
+                />
+              ) : (
+                <ChevronDown
+                  className="
+                    h-5
+                    w-5
+                    shrink-0
+                    text-cyan-400
+                  "
+                />
+              )}
+            </button>
 
-          />
+            {notificationsOpen && (
+              <div
+                className="
+                  border-t
+                  border-white/10
+                  p-5
+                "
+              >
+                <RecentNotificationsPanel
+                  notifications={
+                    notifications
+                  }
 
+                  loading={false}
+                />
+              </div>
+            )}
+          </div>
         </section>
-
-
 
         <QuickActions
-  onActivateBot={() =>
-    router.push("/dashboard/trading-bot/marketplace")
-  }
+          onActivateBot={() =>
+            router.push(
+              "/dashboard/trading-bot/marketplace"
+            )
+          }
 
-  onViewTrades={() =>
-    router.push("/dashboard/trading-bot/live-trades")
-  }
+          onViewTrades={() =>
+            router.push(
+              "/dashboard/trading-bot/live-trades"
+            )
+          }
 
-  onViewHistory={() =>
-    router.push("/dashboard/trading-bot/history")
-  }
+          onViewHistory={() =>
+            router.push(
+              "/dashboard/trading-bot/history"
+            )
+          }
 
-  onContactSupport={() =>
-    router.push("/dashboard/support")
-  }
+          onContactSupport={() =>
+            router.push(
+              "/dashboard/support"
+            )
+          }
 
-  loading={false}
-/>
-
-
+          loading={false}
+        />
       </div>
 
-
-
       <div className="lg:hidden">
-  <MobileBottomActionBar
-    actions={[]}
-  />
-</div>
+        <MobileBottomActionBar
+          actions={[]}
+        />
+      </div>
 
       <TopUpBotDepositModal
-  open={topUpModalOpen}
+        open={
+          topUpModalOpen
+        }
 
-  bot={selectedBot}
-  
-  onClose={() => {
-    setTopUpModalOpen(false);
-    setSelectedBot(null);
-  }}
-  onSuccess={() => {
-    refreshDashboard();
-  }}
-/>
+        bot={
+          selectedBot
+        }
 
-<TransferFundsModal
+        onClose={() => {
+          setTopUpModalOpen(false);
+          setSelectedBot(null);
+        }}
 
-  open={transferModalOpen}
+        onSuccess={() => {
+          refreshDashboard();
+        }}
+      />
 
-  bot={transferBot}
+      <TransferFundsModal
+        open={
+          transferModalOpen
+        }
 
-  onClose={() => {
+        bot={
+          transferBot
+        }
 
-    setTransferModalOpen(false);
+        onClose={() => {
+          setTransferModalOpen(false);
+          setTransferBot(null);
+        }}
 
-    setTransferBot(null);
+        onSuccess={() => {
+          refreshDashboard();
+        }}
+      />
 
-  }}
+      <DashboardTransferModal
+        open={
+          dashboardTransferOpen
+        }
 
-  onSuccess={() => {
+        availableBalance={
+          dashboard.totalAvailableBalance
+        }
 
-    refreshDashboard();
+        onClose={() => {
+          setDashboardTransferOpen(false);
+        }}
 
-  }}
-
-/>
-
-<DashboardTransferModal
-
-  open={dashboardTransferOpen}
-
-  availableBalance={
-    dashboard.totalAvailableBalance
-  }
-
-  onClose={() => {
-
-    setDashboardTransferOpen(false);
-
-  }}
-
-  onSuccess={() => {
-
-    setDashboardTransferOpen(false);
-
-    refreshDashboard();
-
-  }}
-
-/>
-
-
+        onSuccess={() => {
+          setDashboardTransferOpen(false);
+          refreshDashboard();
+        }}
+      />
     </DashboardLayout>
-
   );
-
 };
-
-
 
 export default TradingBotDashboard;

@@ -10,7 +10,17 @@ import {
 import { useRouter } from "next/navigation";
 import { logoutAction } from "../../actions/auth";
 import Link from "next/link";
-import { Cpu } from "lucide-react";
+import {
+  Cpu,
+  LayoutDashboard,
+  User,
+  Pickaxe,
+  Wallet,
+  History,
+  ArrowLeftRight,
+  Users,
+  Network,
+} from "lucide-react";
 
 interface ClientDashboardProps {
   profile: any;
@@ -335,212 +345,244 @@ export default function ClientDashboard({
         </div>
 
         <nav className="flex-1 space-y-1 text-sm overflow-y-auto">
-          <Link
-            href="/dashboard"
-            className="flex items-center px-4 py-3 rounded-xl bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors"
-          >
-            Dashboard
-          </Link>
+  <Link
+    href="/dashboard"
+    className="flex items-center gap-3 px-4 py-3 rounded-xl bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors"
+  >
+    <LayoutDashboard className="w-5 h-5 text-yellow-400" />
+    <span>
+      Dashboard
+    </span>
+  </Link>
 
-          <details className="group">
-            <summary className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer list-none">
-              <span>
-                Mining Plans
-              </span>
+  <Link
+    href="/dashboard/profile"
+    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors"
+  >
+    <User className="w-5 h-5 text-yellow-400" />
+    <span>
+      Profile
+    </span>
+  </Link>
 
-              <span className="text-xs text-zinc-500 group-open:rotate-180 transition-transform">
-                ⌄
-              </span>
-            </summary>
+  <details className="group">
+    <summary className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer list-none">
+      <div className="flex items-center gap-3">
+        <Pickaxe className="w-5 h-5 text-yellow-400" />
 
-            <div className="ml-4 mt-1 space-y-1 text-zinc-400">
-              <Link
-                className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
-                href="/dashboard/mining-plans"
-              >
-                Purchase Mining Power
-              </Link>
+        <span>
+          Mining Plans
+        </span>
+      </div>
 
-              <Link
-                className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
-                href="/deposit"
-              >
-                Deposit History
-              </Link>
-            </div>
-          </details>
+      <span className="text-xs text-zinc-500 group-open:rotate-180 transition-transform">
+        ⌄
+      </span>
+    </summary>
 
-          <details className="group">
-            <summary className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer list-none">
-              <span>
-                Withdraw
-              </span>
+    <div className="ml-4 mt-1 space-y-1 text-zinc-400">
+      <Link
+        className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+        href="/dashboard/mining-plans"
+      >
+        Purchase Mining Power
+      </Link>
 
-              <span className="text-xs text-zinc-500 group-open:rotate-180 transition-transform">
-                ⌄
-              </span>
-            </summary>
+      <Link
+        className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+        href="/deposit"
+      >
+        Deposit History
+      </Link>
+    </div>
+  </details>
 
-            <div className="ml-4 mt-1 space-y-1 text-zinc-400">
-              <Link
-                className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
-                href="/withdraw"
-              >
-                All Withdrawals
-              </Link>
+  <details className="group">
+    <summary className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer list-none">
+      <div className="flex items-center gap-3">
+        <Wallet className="w-5 h-5 text-yellow-400" />
 
-              <Link
-                className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
-                href="/withdraw/new"
-              >
-                New Withdraw
-              </Link>
-            </div>
-          </details>
+        <span>
+          Withdraw
+        </span>
+      </div>
 
-          <details className="group">
-            <summary className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer list-none">
-              <span>
-                Wallet Address
-              </span>
+      <span className="text-xs text-zinc-500 group-open:rotate-180 transition-transform">
+        ⌄
+      </span>
+    </summary>
 
-              <span className="text-xs text-zinc-500 group-open:rotate-180 transition-transform">
-                ⌄
-              </span>
-            </summary>
+    <div className="ml-4 mt-1 space-y-1 text-zinc-400">
+      <Link
+        className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+        href="/withdraw"
+      >
+        All Withdrawals
+      </Link>
 
-            <div className="ml-4 mt-1 space-y-1 text-zinc-400">
-              <Link
-                className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
-                href="/wallets"
-              >
-                All Wallets
-              </Link>
+      <Link
+        className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+        href="/withdraw/new"
+      >
+        New Withdraw
+      </Link>
+    </div>
+  </details>
 
-              <Link
-                className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
-                href="/wallets/new"
-              >
-                New Wallet
-              </Link>
-            </div>
-          </details>
+  <details className="group">
+    <summary className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer list-none">
+      <div className="flex items-center gap-3">
+        <Wallet className="w-5 h-5 text-yellow-400" />
 
-          <details className="group">
-            <summary className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer list-none">
-              <span>
-                History
-              </span>
+        <span>
+          Wallet Address
+        </span>
+      </div>
 
-              <span className="text-xs text-zinc-500 group-open:rotate-180 transition-transform">
-                ⌄
-              </span>
-            </summary>
+      <span className="text-xs text-zinc-500 group-open:rotate-180 transition-transform">
+        ⌄
+      </span>
+    </summary>
 
-            <div className="ml-4 mt-1 space-y-1 text-zinc-400">
-              <Link
-                className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
-                href="/history"
-              >
-                All History
-              </Link>
+    <div className="ml-4 mt-1 space-y-1 text-zinc-400">
+      <Link
+        className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+        href="/wallets"
+      >
+        All Wallets
+      </Link>
 
-              <Link
-                className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
-                href="/history/deposits"
-              >
-                Deposit History
-              </Link>
+      <Link
+        className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+        href="/wallets/new"
+      >
+        New Wallet
+      </Link>
+    </div>
+  </details>
 
-              <Link
-                className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
-                href="/history/withdrawals"
-              >
-                Withdrawal History
-              </Link>
+  <details className="group">
+    <summary className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer list-none">
+      <div className="flex items-center gap-3">
+        <History className="w-5 h-5 text-yellow-400" />
 
-              <Link
-                className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
-                href="/history/convert"
-              >
-                Convert History
-              </Link>
+        <span>
+          History
+        </span>
+      </div>
 
-              <Link
-                className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
-                href="/history/mining"
-              >
-                Gold History
-              </Link>
+      <span className="text-xs text-zinc-500 group-open:rotate-180 transition-transform">
+        ⌄
+      </span>
+    </summary>
 
-              <Link
-                className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
-                href="/history/shared-plans"
-              >
-                Shared Plan History
-              </Link>
-            </div>
-          </details>
+    <div className="ml-4 mt-1 space-y-1 text-zinc-400">
+      <Link
+        className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+        href="/history"
+      >
+        All History
+      </Link>
 
-          <details className="group">
-            <summary className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer list-none">
-              <span>
-                Convert
-              </span>
+      <Link
+        className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+        href="/history/deposits"
+      >
+        Deposit History
+      </Link>
 
-              <span className="text-xs text-zinc-500 group-open:rotate-180 transition-transform">
-                ⌄
-              </span>
-            </summary>
+      <Link
+        className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+        href="/history/withdrawals"
+      >
+        Withdrawal History
+      </Link>
 
-            <div className="ml-4 mt-1 space-y-1 text-zinc-400">
-              <Link
-                className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
-                href="/convert"
-              >
-                All Convert
-              </Link>
+      <Link
+        className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+        href="/history/convert"
+      >
+        Convert History
+      </Link>
 
-              <Link
-                className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
-                href="/convert/new"
-              >
-                New Convert
-              </Link>
-            </div>
-          </details>
+      <Link
+        className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+        href="/history/mining"
+      >
+        Gold History
+      </Link>
 
-          <Link
-            href="/shared-plans"
-            className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors"
-          >
-            Shared Plan
-          </Link>
+      <Link
+        className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+        href="/history/shared-plans"
+      >
+        Shared Plan History
+      </Link>
+    </div>
+  </details>
 
-          <Link
-            href="/referrals"
-            className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors"
-          >
-            Referrals
-          </Link>
+  <details className="group">
+    <summary className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer list-none">
+      <div className="flex items-center gap-3">
+        <ArrowLeftRight className="w-5 h-5 text-yellow-400" />
 
-          <Link
-            href="/dashboard/trading-bot"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-900 text-zinc-400 hover:text-amber-500 transition-colors"
-          >
-            <Cpu className="w-5 h-5 text-amber-500" />
-            <span>
-              Trading Bot
-            </span>
-          </Link>
+        <span>
+          Convert
+        </span>
+      </div>
 
-          <Link
-            href="/change-password"
-            className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors"
-          >
-            Change Password
-          </Link>
-        </nav>
+      <span className="text-xs text-zinc-500 group-open:rotate-180 transition-transform">
+        ⌄
+      </span>
+    </summary>
+
+    <div className="ml-4 mt-1 space-y-1 text-zinc-400">
+      <Link
+        className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+        href="/convert"
+      >
+        All Convert
+      </Link>
+
+      <Link
+        className="block px-4 py-2 rounded-lg hover:bg-zinc-800 hover:text-white"
+        href="/convert/new"
+      >
+        New Convert
+      </Link>
+    </div>
+  </details>
+
+  <Link
+    href="/shared-plans"
+    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors"
+  >
+    <Users className="w-5 h-5 text-yellow-400" />
+    <span>
+      Shared Plan
+    </span>
+  </Link>
+
+  <Link
+    href="/referrals"
+    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors"
+  >
+    <Network className="w-5 h-5 text-yellow-400" />
+    <span>
+      Referrals
+    </span>
+  </Link>
+
+  <Link
+    href="/dashboard/trading-bot"
+    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-900 text-zinc-400 hover:text-amber-500 transition-colors"
+  >
+    <Cpu className="w-5 h-5 text-amber-500" />
+    <span>
+      Trading Bot
+    </span>
+  </Link>
+</nav>
 
         <div className="mt-auto pt-8">
           <form

@@ -2190,3 +2190,289 @@ export function goldConversionEmail({
     `
   );
 }
+
+export function emailChangeSecurityAlertEmail({
+  name,
+  oldEmail,
+  newEmail,
+}: {
+  name: string;
+  oldEmail: string;
+  newEmail: string;
+}) {
+  return emailLayout(
+    "Security Alert: Email Change Requested",
+    `
+      <p>
+        Hello <strong>${name}</strong>,
+      </p>
+
+      <p>
+        We received a request to change the email address
+        associated with your
+        <strong>Imperial Aurum Mining</strong>
+        account.
+      </p>
+
+      <table
+        width="100%"
+        cellpadding="12"
+        cellspacing="0"
+        style="
+          background:#27272a;
+          border:1px solid #3f3f46;
+          border-radius:12px;
+          margin:25px 0;
+          color:#ffffff;
+        "
+      >
+        <tr>
+          <td
+            style="
+              color:#a1a1aa;
+              font-size:14px;
+            "
+          >
+            Current Email
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#ffffff;
+              font-weight:bold;
+              font-size:14px;
+              word-break:break-all;
+            "
+          >
+            ${oldEmail}
+          </td>
+        </tr>
+
+        <tr>
+          <td
+            style="
+              color:#a1a1aa;
+              font-size:14px;
+            "
+          >
+            New Email
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#facc15;
+              font-weight:bold;
+              font-size:14px;
+              word-break:break-all;
+            "
+          >
+            ${newEmail}
+          </td>
+        </tr>
+
+        <tr>
+          <td
+            style="
+              color:#a1a1aa;
+              font-size:14px;
+            "
+          >
+            Request Status
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#facc15;
+              font-weight:bold;
+              font-size:14px;
+            "
+          >
+            Email Change Requested
+          </td>
+        </tr>
+      </table>
+
+      <div
+        style="
+          background:#451a03;
+          border:1px solid #92400e;
+          border-radius:12px;
+          padding:18px;
+          margin:25px 0;
+        "
+      >
+        <p
+          style="
+            margin:0 0 10px 0;
+            color:#fbbf24;
+            font-weight:bold;
+          "
+        >
+          ⚠️ Important Security Notice
+        </p>
+
+        <p
+          style="
+            margin:0;
+            color:#f4f4f5;
+            line-height:1.7;
+          "
+        >
+          If you requested this email change, no further
+          action is required.
+        </p>
+      </div>
+
+      <div
+        style="
+          background:#18181b;
+          border:1px solid #3f3f46;
+          border-radius:12px;
+          padding:18px;
+          margin:25px 0;
+        "
+      >
+        <p
+          style="
+            margin:0 0 10px 0;
+            color:#ffffff;
+            font-weight:bold;
+          "
+        >
+          Did you NOT request this change?
+        </p>
+
+        <p
+          style="
+            margin:0;
+            color:#d4d4d8;
+            line-height:1.7;
+          "
+        >
+          Log in to your Imperial Aurum Mining account
+          immediately and change your password. You should
+          also contact our support team as soon as possible
+          so we can help secure your account.
+        </p>
+      </div>
+
+      <p>
+        For your protection, please do not share your
+        password or account credentials with anyone.
+      </p>
+
+      <p>
+        If you requested this change, you can safely ignore
+        this security notification.
+      </p>
+
+      <p>
+        Thank you for choosing
+        <strong>Imperial Aurum Mining.</strong>
+      </p>
+
+      <p>
+        Best regards,<br>
+        <strong>Imperial Aurum Mining Security Team</strong>
+      </p>
+    `
+  );
+}
+
+/* ================================
+   📧 EMAIL ADDRESS CHANGED
+================================ */
+
+export function emailChangedSuccessfullyEmail({
+  name,
+  newEmail,
+}: {
+  name: string;
+  newEmail: string;
+}) {
+  return emailLayout(
+    "Your Email Address Has Been Changed",
+    `
+      <p>Hello <strong>${name}</strong>,</p>
+
+      <p>
+        Your email address for your
+        <strong>Imperial Aurum Mining</strong>
+        account has been changed successfully.
+      </p>
+
+      <table
+        width="100%"
+        cellpadding="10"
+        cellspacing="0"
+        style="
+          background:#27272a;
+          border-radius:10px;
+          margin:25px 0;
+          color:#ffffff;
+        "
+      >
+        <tr>
+          <td style="color:#a1a1aa;">
+            New Email Address
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#22c55e;
+              font-weight:bold;
+              word-break:break-all;
+            "
+          >
+            ${newEmail}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="color:#a1a1aa;">
+            Status
+          </td>
+
+          <td
+            align="right"
+            style="
+              color:#22c55e;
+              font-weight:bold;
+            "
+          >
+            Successfully Changed
+          </td>
+        </tr>
+      </table>
+
+      <p>
+        This email confirms that your account email address has been
+        successfully updated.
+      </p>
+
+      <p>
+        You can now use your new email address when signing in to
+        Imperial Aurum Mining.
+      </p>
+
+      <p>
+        If you did not make this change, please contact our support team
+        immediately and secure your account.
+      </p>
+
+      <p>
+        Thank you for choosing
+        <strong>Imperial Aurum Mining.</strong>
+      </p>
+
+      <p>
+        Best regards,<br>
+        <strong>Imperial Aurum Mining Team</strong>
+      </p>
+    `
+  );
+}
