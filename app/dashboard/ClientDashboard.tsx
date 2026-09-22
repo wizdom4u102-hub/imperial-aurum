@@ -365,6 +365,16 @@ export default function ClientDashboard({
     </span>
   </Link>
 
+  <Link
+    href="/dashboard/reinvestment"
+    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors"
+  >
+    <ArrowLeftRight className="w-5 h-5 text-yellow-400" />
+   <span>
+    Reinvestment
+   </span>
+  </Link>
+
   <details className="group">
     <summary className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-zinc-900 transition-colors cursor-pointer list-none">
       <div className="flex items-center gap-3">
@@ -653,7 +663,7 @@ export default function ClientDashboard({
               <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-yellow-400 tracking-tight">
                 {Number(
                   displayGold || 0
-                ).toFixed(4)}
+                ).toFixed(2)}
               </div>
             </div>
 
@@ -861,7 +871,10 @@ function MiningCard({
   // STATE
   // =====================================================
 
-  const [timeLeft, setTimeLeft] =
+    const [timeLeft, setTimeLeft] =
+    useState(0);
+
+  const [uiTimeLeft, setUiTimeLeft] =
     useState(0);
 
   const [loading, setLoading] =
@@ -869,6 +882,11 @@ function MiningCard({
 
   const [currentSession, setCurrentSession] =
     useState(session);
+
+      const isPaidMining =
+    Number(
+      currentSession?.investment_amount || 0
+    ) > 0;
 
   // =====================================================
   // SESSION FETCH
@@ -910,7 +928,7 @@ function MiningCard({
         // NO SESSION
         // =================================================
 
-        if (
+                if (
           !data?.session
         ) {
           setCurrentSession(
@@ -918,6 +936,7 @@ function MiningCard({
           );
 
           setTimeLeft(0);
+          setUiTimeLeft(0);
 
           setLoading(false);
 
@@ -945,7 +964,7 @@ function MiningCard({
         // PAUSED SESSION
         // =================================================
 
-        if (
+                if (
           data.paused === true ||
           serverSession.active !==
             true ||
@@ -953,6 +972,7 @@ function MiningCard({
             "active"
         ) {
           setTimeLeft(0);
+          setUiTimeLeft(0);
 
           setLoading(false);
 
@@ -1026,7 +1046,7 @@ function MiningCard({
           return;
         }
 
-        const now =
+                const now =
           Date.now();
 
         const remaining =
@@ -1035,12 +1055,92 @@ function MiningCard({
             planEnd - now
           );
 
+        // =================================================
+        // REAL SERVER TIMER
+        //
+        // This remains the actual paid-plan/free-session
+        // timer. It is NOT changed into a 24-hour timer.
+        // =================================================
+
         setTimeLeft(
           remaining
         );
 
+        // =================================================
+        // 24-HOUR UI CLAIM TIMER
+        //
+        // PAID MINING:
+        //
+        // The backend continues mining independently.
+        // The UI stops after 24 hours and waits for Mine Now.
+        //
+        // The timestamp is stored locally so refreshing the
+        // page does not restart the 24-hour UI cycle.
+        //
+        // FREE MINING:
+        //
+        // Keep the existing server-controlled 24-hour cycle.
+        // =================================================
+
+        const paidMining =
+          Number(
+            serverSession.investment_amount ||
+              0
+          ) > 0;
+
+        if (paidMining) {
+          const storageKey =
+            `paid-mining-ui-cycle:${serverSession.id}`;
+
+          const storedCycleStart =
+            window.localStorage.getItem(
+              storageKey
+            );
+
+          const parsedCycleStart =
+            storedCycleStart
+              ? Number(
+                  storedCycleStart
+                )
+              : NaN;
+
+          const cycleStart =
+            Number.isFinite(
+              parsedCycleStart
+            )
+              ? parsedCycleStart
+              : serverSession.started_at
+                ? new Date(
+                    serverSession.started_at
+                  ).getTime()
+                : now;
+
+          const uiElapsed =
+            Math.max(
+              0,
+              now - cycleStart
+            );
+
+          const uiRemaining =
+            Math.max(
+              0,
+              DAILY_DISPLAY_DURATION -
+                uiElapsed
+            );
+
+          setUiTimeLeft(
+            uiRemaining
+          );
+        } else {
+          setUiTimeLeft(
+            remaining
+          );
+        }
+
         setLoading(false);
-      } catch (err) {
+      }
+      
+      catch (err) {
         console.error(
           "Session fetch error:",
           err
@@ -1082,9 +1182,10 @@ function MiningCard({
   // remains authoritative and is rechecked every 15 seconds.
   // =====================================================
 
-  useEffect(() => {
+    useEffect(() => {
     if (
-      timeLeft <= 0
+      timeLeft <= 0 &&
+      uiTimeLeft <= 0
     ) {
       return;
     }
@@ -1106,6 +1207,21 @@ function MiningCard({
               );
             }
           );
+
+          setUiTimeLeft(
+            (previous) => {
+              if (
+                previous <=
+                1000
+              ) {
+                return 0;
+              }
+
+              return (
+                previous - 1000
+              );
+            }
+          );
         },
         1000
       );
@@ -1114,7 +1230,10 @@ function MiningCard({
       window.clearInterval(
         interval
       );
-  }, [timeLeft]);
+  }, [
+    timeLeft,
+    uiTimeLeft,
+  ]);
 
   // =====================================================
   // START / MINE NOW
@@ -1180,23 +1299,98 @@ function MiningCard({
       }
     };
 
-    // =====================================================
+
+      const claimPaidMining =
+    async () => {
+      try {
+        const res =
+          await fetch(
+            "/api/mining/claim",
+            {
+              method:
+                "POST",
+
+              credentials:
+                "include",
+            }
+          );
+
+        const data =
+          (await res.json()) as {
+            success?: boolean;
+            claimed?: number;
+            credited?: number;
+            total_earned?: number;
+            completed?: boolean;
+            error?: string;
+          };
+
+        console.log(
+          "PAID MINING CLAIM:",
+          data
+        );
+
+                if (!res.ok || data.success !== true) {
+          console.error(
+            data.error ||
+              "Failed to claim paid mining reward."
+          );
+
+          return;
+        }
+
+        if (data.completed !== true) {
+          const sessionId =
+            currentSession?.id;
+
+          if (sessionId) {
+            const storageKey =
+              `paid-mining-ui-cycle:${sessionId}`;
+
+            window.localStorage.setItem(
+              storageKey,
+              String(Date.now())
+            );
+          }
+
+          setUiTimeLeft(
+            DAILY_DISPLAY_DURATION
+          );
+        }
+
+        await fetchSession();
+
+        window.dispatchEvent(
+          new Event(
+            "wallet-refresh"
+          )
+        );
+      } catch (err) {
+        console.error(
+          "Paid mining claim error:",
+          err
+        );
+      }
+    };
+
+      // =====================================================
   // TIMER DISPLAY
   //
-  // UI DISPLAY ONLY
+  // PAID MINING:
+  //   Uses the separate 24-hour UI claim timer.
   //
-  // The actual mining session still uses the full
-  // server-provided `timeLeft`.
+  // FREE MINING:
+  //   Uses the server-controlled 24-hour timer.
   //
-  // Only the visual countdown is displayed as a
-  // 24-hour cycle.
+  // The paid plan's real `timeLeft` remains separate and
+  // continues to represent the actual paid-plan expiry.
   // =====================================================
 
   const DAILY_DISPLAY_DURATION =
     24 * 60 * 60 * 1000;
 
   const displayTimeLeft =
-    timeLeft % DAILY_DISPLAY_DURATION;
+    uiTimeLeft;
 
   const hours =
     Math.floor(
@@ -1246,15 +1440,17 @@ function MiningCard({
 
   return (
     <div className="bg-gradient-to-br from-amber-900 to-yellow-900 p-4 sm:p-6 lg:p-8 rounded-full aspect-square w-full max-w-[220px] sm:max-w-[240px] lg:max-w-[300px] xl:max-w-[340px] mx-auto flex flex-col items-center justify-center border-4 border-yellow-400 shadow-2xl text-center overflow-hidden">
-      {timeLeft <= 0 ? (
+            {uiTimeLeft <= 0 ? (
         <>
           <p className="text-yellow-300 text-sm mb-4">
             Mining Stopped
           </p>
 
-          <button
+                    <button
             onClick={
-              startMining
+              isPaidMining
+                ? claimPaidMining
+                : startMining
             }
             className="px-6 py-3 bg-yellow-400 text-black font-bold rounded-xl"
           >
@@ -1273,9 +1469,9 @@ function MiningCard({
             </p>
 
             <p className="text-2xl sm:text-3xl font-bold text-yellow-400">
-              {ratePerHour}{" "}
-              GOLD/h
-            </p>
+              {ratePerHour.toFixed(4)}{" "}
+               GOLD/h
+              </p>
           </div>
 
           <p className="text-xl sm:text-2xl lg:text-3xl font-mono font-bold">

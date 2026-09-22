@@ -330,7 +330,7 @@ export const getTradesByUserId = async (
 export const getOpenTradesByBotId = async (
   botId: string
 ): Promise<RepositoryResult<BotTradeRecord[]>> => {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
 
   const { data, error } = await supabase
     .from("bot_trades")
@@ -408,7 +408,7 @@ export const getTradesOpenedToday = async (
 export const getTradeById = async (
   id: string
 ): Promise<RepositoryResult<BotTradeRecord>> => {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
 
   const { data, error } = await supabase
     .from("bot_trades")
@@ -1235,7 +1235,7 @@ export const getBotStatistics = async (
   botId: string
 ): Promise<RepositoryResult<BotStatisticsRecord>> => {
 
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
 
   const { data, error } = await supabase
     .from("bot_statistics")

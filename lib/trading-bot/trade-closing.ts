@@ -56,14 +56,34 @@ export async function closeExpiredTrades(
       continue;
     }
 
-    await closeTrade(
-      trade.id,
-      now
+        const closeResult =
+      await closeTrade(
+        trade.id,
+        now
+      );
+
+    if (
+      closeResult.error ||
+      !closeResult.data
+    ) {
+      console.error(
+        "[TRADING BOT] Failed to close trade:",
+        trade.id,
+        closeResult.error?.message
+      );
+
+      continue;
+    }
+
+    console.log(
+      "[TRADING BOT] Trade closed successfully:",
+      trade.id
     );
 
     await finalizeTrade(
       trade.id
     );
+    
     const logResult =
   await createBotLog({
     action: "TRADE_CLOSED",

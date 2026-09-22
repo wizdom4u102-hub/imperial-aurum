@@ -2157,6 +2157,14 @@ export type Database = {
         Returns: Json
       }
       approve_deposit: { Args: { deposit_id: string }; Returns: undefined }
+      claim_paid_mining_reward: {
+        Args: { p_session_id: string; p_user_id: string }
+        Returns: {
+          claimed: number
+          completed: boolean
+          total_earned: number
+        }[]
+      }
       create_bot_log: {
         Args: {
           p_action: string
@@ -2187,6 +2195,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      create_referral_bonus_transaction: {
+        Args: { p_amount: number; p_new_user_id: string; p_referrer_id: string }
+        Returns: undefined
       }
       create_visitor_chat: {
         Args: { p_session_id: string; p_subject?: string; p_user_id?: string }
@@ -2221,6 +2233,7 @@ export type Database = {
       create_visitor_session: {
         Args: {
           p_browser?: string
+          p_country?: string
           p_current_page?: string
           p_device_type?: string
           p_landing_page?: string
@@ -2300,6 +2313,16 @@ export type Database = {
           p_page_url?: string
           p_session_id: string
           p_user_id?: string
+        }
+        Returns: Json
+      }
+      reinvest_from_cash: {
+        Args: {
+          p_amount?: number
+          p_bot_id?: string
+          p_bot_mode?: string
+          p_destination: string
+          p_plan_id?: string
         }
         Returns: Json
       }

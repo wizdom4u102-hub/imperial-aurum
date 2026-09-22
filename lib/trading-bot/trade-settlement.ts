@@ -19,6 +19,10 @@ import {
 export async function finalizeTrade(
   tradeId: string
 ): Promise<void> {
+  console.log(
+    "[TRADING BOT] Finalizing trade:",
+    tradeId
+  );
 
   const tradeResult =
     await getTradeById(tradeId);
@@ -27,11 +31,27 @@ export async function finalizeTrade(
     tradeResult.error ||
     !tradeResult.data
   ) {
+    console.error(
+      "[TRADING BOT] Failed to load trade for settlement:",
+      tradeId,
+      tradeResult.error?.message
+    );
+
     return;
   }
 
   const trade =
     tradeResult.data;
+
+  console.log(
+    "[TRADING BOT] Trade loaded for settlement:",
+    {
+      tradeId: trade.id,
+      botId: trade.bot_id,
+      status: trade.status,
+      netProfit: trade.net_profit,
+    }
+  );
 
   const botResult =
     await getTradingBotById(
@@ -42,6 +62,15 @@ export async function finalizeTrade(
     botResult.error ||
     !botResult.data
   ) {
+    console.error(
+      "[TRADING BOT] Failed to load trading bot:",
+      {
+        botId: trade.bot_id,
+        error:
+          botResult.error?.message,
+      }
+    );
+
     return;
   }
 
@@ -57,23 +86,49 @@ export async function finalizeTrade(
     statisticsResult.error ||
     !statisticsResult.data
   ) {
+    console.error(
+      "[TRADING BOT] Failed to load bot statistics:",
+      {
+        botId: bot.id,
+        error:
+          statisticsResult.error?.message,
+      }
+    );
+
     return;
   }
 
   const stats =
     statisticsResult.data;
 
+  console.log(
+    "[TRADING BOT] Bot statistics loaded:",
+    {
+      botId: bot.id,
+      totalTrades:
+        stats.total_trades,
+      totalProfit:
+        stats.total_profit,
+      availableBalance:
+        bot.available_balance,
+    }
+  );
+
   const now =
     new Date().toISOString();
 
-  const profit = Number(trade.net_profit ?? 0);
+  const profit =
+    Number(
+      trade.net_profit ?? 0
+    );
 
-const closedAt =
-  trade.closed_at ??
-  now;
+  const closedAt =
+    trade.closed_at ??
+    now;
 
   const totalTrades =
-    (stats.total_trades ?? 0) + 1;
+    (stats.total_trades ?? 0) +
+    1;
 
   const winningTrades =
     (stats.winning_trades ?? 0) +
@@ -84,20 +139,26 @@ const closedAt =
     (profit <= 0 ? 1 : 0);
 
   const accumulatedProfit =
-  Number(bot.accumulated_profit ?? 0) +
-  profit;
+    Number(
+      bot.accumulated_profit ?? 0
+    ) + profit;
 
-const availableBalance =
-  profit > 0
-    ? Number(bot.available_balance ?? 0) + profit
-    : Math.max(
-        0,
-        Number(bot.available_balance ?? 0) + profit
-      );
+  const availableBalance =
+    profit > 0
+      ? Number(
+          bot.available_balance ?? 0
+        ) + profit
+      : Math.max(
+          0,
+          Number(
+            bot.available_balance ?? 0
+          ) + profit
+        );
 
-const currentValue =
-  Number(bot.investment_capital) +
-  accumulatedProfit;
+  const currentValue =
+    Number(
+      bot.investment_capital
+    ) + accumulatedProfit;
 
   const roi =
     bot.investment_capital > 0
@@ -121,182 +182,295 @@ const currentValue =
         )
       : 0;
 
-  await updateTradingBot(
-  bot.id,
-  {
-    accumulated_profit:
-      accumulatedProfit,
+  /* ------------------------------------------------------------------------ */
+  /*                         Update Trading Bot                                */
+  /* ------------------------------------------------------------------------ */
 
-    available_balance:
-      availableBalance,
+  const updateBotResult =
+    await updateTradingBot(
+      bot.id,
+      {
+        accumulated_profit:
+          accumulatedProfit,
 
-    current_value:
-      currentValue,
+        available_balance:
+          availableBalance,
 
-    last_trade_at:
-      closedAt,
+        current_value:
+          currentValue,
 
-    last_profit_at:
-      closedAt,
+        last_trade_at:
+          closedAt,
 
-    updated_at:
-      now,
+        last_profit_at:
+          closedAt,
+
+        updated_at:
+          now,
+      }
+    );
+
+  if (
+    updateBotResult.error ||
+    !updateBotResult.data
+  ) {
+    console.error(
+      "[TRADING BOT] Failed to update trading bot after settlement:",
+      {
+        botId: bot.id,
+        tradeId: trade.id,
+        error:
+          updateBotResult.error?.message,
+      }
+    );
+
+    return;
   }
-);
 
-  await updateBotStatistics(
-    bot.id,
-    {
-      total_trades:
-        totalTrades,
+  /* ------------------------------------------------------------------------ */
+  /*                         Update Bot Statistics                             */
+  /* ------------------------------------------------------------------------ */
 
-      winning_trades:
-        winningTrades,
+  const updateStatisticsResult =
+    await updateBotStatistics(
+      bot.id,
+      {
+        total_trades:
+          totalTrades,
 
-      losing_trades:
-        losingTrades,
+        winning_trades:
+          winningTrades,
 
-      total_profit:
-        accumulatedProfit,
+        losing_trades:
+          losingTrades,
 
-      accumulated_profit:
-        accumulatedProfit,
+        total_profit:
+          accumulatedProfit,
 
-      today_profit:
-        Number(stats.today_profit ?? 0) +
-        profit,
+        accumulated_profit:
+          accumulatedProfit,
 
-      weekly_profit:
-        Number(stats.weekly_profit ?? 0) +
-        profit,
+        today_profit:
+          Number(
+            stats.today_profit ?? 0
+          ) + profit,
 
-      monthly_profit:
-        Number(stats.monthly_profit ?? 0) +
-        profit,
+        weekly_profit:
+          Number(
+            stats.weekly_profit ?? 0
+          ) + profit,
 
-      yearly_profit:
-        Number(stats.yearly_profit ?? 0) +
-        profit,
+        monthly_profit:
+          Number(
+            stats.monthly_profit ?? 0
+          ) + profit,
 
-      current_value:
-        currentValue,
+        yearly_profit:
+          Number(
+            stats.yearly_profit ?? 0
+          ) + profit,
 
-      current_portfolio_value:
-        currentValue,
+        current_value:
+          currentValue,
 
-      roi_percentage:
-        roi,
+        current_portfolio_value:
+          currentValue,
 
-      win_rate:
-        winRate,
+        roi_percentage:
+          roi,
 
-      latest_trade_id:
+        win_rate:
+          winRate,
+
+        latest_trade_id:
+          trade.id,
+
+        last_trade_at:
+          closedAt,
+
+        last_profit_at:
+          closedAt,
+
+        last_updated_at:
+          now,
+      }
+    );
+
+  if (
+    updateStatisticsResult.error ||
+    !updateStatisticsResult.data
+  ) {
+    console.error(
+      "[TRADING BOT] Failed to update bot statistics after settlement:",
+      {
+        botId: bot.id,
+        tradeId: trade.id,
+        error:
+          updateStatisticsResult.error?.message,
+      }
+    );
+
+    return;
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /*                         Create Bot Transaction                            */
+  /* ------------------------------------------------------------------------ */
+
+  try {
+    await createBotTransaction({
+      user_id:
+        bot.user_id,
+
+      bot_id:
+        bot.id,
+
+      transaction_type:
+        "PROFIT",
+
+      amount:
+        Math.abs(profit),
+
+      balance_before:
+        Number(
+          bot.available_balance ?? 0
+        ),
+
+      balance_after:
+        availableBalance,
+
+      status:
+        "COMPLETED",
+
+      reference_id:
         trade.id,
 
-      last_trade_at:
-        closedAt,
+      description:
+        profit >= 0
+          ? "Daily trading profit credited."
+          : "Trading loss recorded.",
 
-      last_profit_at:
-        closedAt,
+      metadata: {
+        trade_id:
+          trade.id,
 
-      last_updated_at:
-        now,
-    }
-  );
+        trade_number:
+          trade.trade_number,
 
-  await createBotTransaction({
-  user_id:
-    bot.user_id,
+        asset:
+          trade.asset,
 
-  bot_id:
-    bot.id,
+        roi:
+          trade.roi_percentage,
 
-  transaction_type:
-    "PROFIT",
-  amount:
-    Math.abs(profit),
+        gross_profit:
+          trade.gross_profit,
 
-  balance_before:
-    Number(
-      bot.available_balance ?? 0
-    ),
+        trading_fee:
+          trade.trading_fee,
 
-  balance_after:
-    availableBalance,
+        net_profit:
+          trade.net_profit,
+      },
+    });
+  } catch (error: unknown) {
+    console.error(
+      "[TRADING BOT] Failed to create profit transaction:",
+      {
+        botId: bot.id,
+        tradeId: trade.id,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unknown transaction error",
+      }
+    );
 
-  status:
-    "COMPLETED",
+    return;
+  }
 
-  reference_id:
-    trade.id,
-
-  description:
-    profit >= 0
-      ? "Daily trading profit credited."
-      : "Trading loss recorded.",
-
-  metadata: {
-    trade_id:
-      trade.id,
-
-    trade_number:
-      trade.trade_number,
-
-    asset:
-      trade.asset,
-
-    roi:
-      trade.roi_percentage,
-
-    gross_profit:
-      trade.gross_profit,
-
-    trading_fee:
-      trade.trading_fee,
-
-    net_profit:
-      trade.net_profit,
-  },
-});
+  /* ------------------------------------------------------------------------ */
+  /*                              Create Log                                  */
+  /* ------------------------------------------------------------------------ */
 
   const profitLogResult =
-  await createBotLog({
-    action: "PROFIT_CREDITED",
+    await createBotLog({
+      action:
+        "PROFIT_CREDITED",
 
-    bot_id: bot.id,
+      bot_id:
+        bot.id,
 
-    trade_id: trade.id,
+      trade_id:
+        trade.id,
 
-    user_id: bot.user_id,
+      user_id:
+        bot.user_id,
 
-    log_type: "profit",
+      log_type:
+        "profit",
 
-    message:
-      profit >= 0
-        ? `Profit of $${profit.toFixed(2)} credited to trading bot.`
-        : `Loss of $${Math.abs(profit).toFixed(2)} recorded.`,
+      message:
+        profit >= 0
+          ? `Profit of $${profit.toFixed(2)} credited to trading bot.`
+          : `Loss of $${Math.abs(profit).toFixed(2)} recorded.`,
 
-    metadata: {
+      metadata: {
+        profit,
+
+        accumulated_profit:
+          accumulatedProfit,
+
+        current_value:
+          currentValue,
+
+        roi,
+
+        total_trades:
+          totalTrades,
+
+        winning_trades:
+          winningTrades,
+
+        losing_trades:
+          losingTrades,
+      },
+
+      severity:
+        profit >= 0
+          ? "info"
+          : "warning",
+    });
+
+  if (
+    profitLogResult.error
+  ) {
+    console.error(
+      "[TRADING BOT] Unable to write profit log:",
+      profitLogResult.error.message
+    );
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /*                         Settlement Complete                               */
+  /* ------------------------------------------------------------------------ */
+
+  console.log(
+    "[TRADING BOT] Trade settlement completed:",
+    {
+      tradeId:
+        trade.id,
+
+      botId:
+        bot.id,
+
       profit,
-      accumulated_profit: accumulatedProfit,
-      current_value: currentValue,
-      roi,
-      total_trades: totalTrades,
-      winning_trades: winningTrades,
-      losing_trades: losingTrades,
-    },
 
-    severity:
-      profit >= 0
-        ? "info"
-        : "warning",
-  });
+      accumulatedProfit,
 
-if (profitLogResult.error) {
-  console.error(
-    "Unable to write profit log:",
-    profitLogResult.error.message
+      availableBalance,
+
+      currentValue,
+    }
   );
-}
-
 }
