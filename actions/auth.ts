@@ -178,26 +178,34 @@ export async function signupAction(formData: FormData) {
   });
 
   // ==============================
-  // SEND ADMIN NEW SIGNUP EMAIL
-  // ==============================
+// SEND ADMIN NEW SIGNUP EMAIL
+// ==============================
 
-  try {
+try {
+  const adminEmail = process.env.ADMIN_EMAIL;
+
+  if (!adminEmail) {
+    console.error(
+      "ADMIN SIGNUP EMAIL ERROR: ADMIN_EMAIL is not configured"
+    );
+  } else {
     await sendEmail({
-      to: "support@imperialaurummining.com",
+      to: adminEmail,
       subject: `New User Registration - ${username}`,
       html: adminNewSignupEmail({
         name: username,
         email,
       }),
     });
-  } catch (emailError) {
-    console.error(
-      "ADMIN SIGNUP EMAIL ERROR:",
-      emailError
-    );
-
-    // Admin email failure does NOT cancel signup.
   }
+} catch (emailError) {
+  console.error(
+    "ADMIN SIGNUP EMAIL ERROR:",
+    emailError
+  );
+
+  // Admin email failure does NOT cancel signup.
+}
 
   // ==============================
   // CREDIT REFERRER + SEND EMAIL

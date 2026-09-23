@@ -148,9 +148,9 @@ console.log(
             </h1>
 
             <p className="text-zinc-400 mt-4 text-lg max-w-2xl">
-              Invest your funds into premium company share plans and earn
-              automated ROI directly into your cash balance.
-            </p>
+  Invest in premium company share plans through direct deposit to the
+  designated project wallet and earn automated ROI directly into your cash balance.
+</p>
           </div>
 
           <Link
@@ -247,10 +247,10 @@ console.log(
             </h2>
 
             <p className="text-zinc-300 text-lg leading-relaxed mb-8">
-              Invest from your cash balance into premium company share plans.
-              Your investment capital becomes securely locked while ROI profits
-              are credited automatically into your wallet balance.
-            </p>
+  Invest in premium company share plans by making a direct deposit to
+  the designated project wallet. Your investment capital becomes securely
+  locked while ROI profits are credited automatically into your cash balance.
+</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-zinc-300 mb-10">
 
