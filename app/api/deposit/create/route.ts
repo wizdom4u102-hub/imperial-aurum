@@ -482,38 +482,38 @@ export async function POST(req: Request) {
     // =====================================================
 
     try {
-      await sendEmail({
-        to:
-          'support@imperialaurummining.com',
+  const adminEmail = process.env.ADMIN_EMAIL;
 
-        subject:
-          miningPlan
-            ? `New Mining Plan Deposit - ${userName}`
-            : `New Deposit Request - ${userName}`,
+  if (!adminEmail) {
+    console.error(
+      'ADMIN DEPOSIT EMAIL ERROR: ADMIN_EMAIL is not configured'
+    );
+  } else {
+    await sendEmail({
+      to: adminEmail,
 
-        html:
-          adminNewDepositEmail({
-            name:
-              userName,
+      subject:
+        miningPlan
+          ? `New Mining Plan Deposit - ${userName}`
+          : `New Deposit Request - ${userName}`,
 
-            email:
-              user.email || 'N/A',
+      html:
+        adminNewDepositEmail({
+          name: userName,
+          email: user.email || 'N/A',
+          amount: amount,
+          method: paymentMethod.name,
+        }),
+    });
+  }
+} catch (emailError) {
+  console.error(
+    'ADMIN DEPOSIT EMAIL ERROR:',
+    emailError
+  );
 
-            amount:
-              amount,
-
-            method:
-              paymentMethod.name,
-          }),
-      })
-    } catch (emailError) {
-      console.error(
-        'ADMIN DEPOSIT EMAIL ERROR:',
-        emailError
-      )
-
-      // Admin email failure does NOT cancel the deposit.
-    }
+  // Admin email failure does NOT cancel the deposit.
+}
 
     // =====================================================
     // AUDIT LOG
