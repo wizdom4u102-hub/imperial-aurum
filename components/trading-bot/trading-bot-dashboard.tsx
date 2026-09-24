@@ -128,12 +128,12 @@ const TradingBotDashboard: React.FC = () => {
   } = useTradingBotDashboard();
 
   const handleOpenBotDetails = (
-    botId: string
-  ) => {
-    router.push(
-      `/dashboard/trading-bot/${botId}`
-    );
-  };
+  botId: string
+) => {
+  router.push(
+    `/dashboard/trading-bot/view/${botId}`
+  );
+};
 
   const handleTopUpBot = (
     bot: TradingBotRecord
